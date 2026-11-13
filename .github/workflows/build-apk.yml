@@ -1,0 +1,111 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      SDK_URL: https://downloads.immortalwrt.org/snapshots/targets/rockchip/armv8
+      PACKAGE: luci-app-xgp-v3-screen
+      ARCH: aarch64_generic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install SDK prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gawk gettext libncurses-dev libssl-dev \
+            python3-pyelftools rsync swig unzip zlib1g-dev zstd
+
+      - name: Download and verify ImmortalWrt SDK
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --location --retry 3 --silent --show-error "$SDK_URL/sha256sums" -o sdk-checksums
+          awk '$2 ~ /^\*?immortalwrt-sdk-rockchip-armv8_.*\.Linux-x86_64\.tar\.zst$/ { print }' \
+            sdk-checksums > sdk.sha256
+          test "$(wc -l < sdk.sha256)" -eq 1
+          archive=$(awk '{ sub(/^\*/, "", $2); print $2 }' sdk.sha256)
+          curl --fail --location --retry 3 --silent --show-error "$SDK_URL/$archive" -o "$archive"
+          sha256sum --check sdk.sha256
+          curl --fail --location --retry 3 --silent --show-error "$SDK_URL/feeds.buildinfo" -o feeds.buildinfo
+          awk '$2 ~ /^\*?feeds\.buildinfo$/ { print }' sdk-checksums > feeds.sha256
+          sha256sum --check feeds.sha256
+          mkdir sdk
+          tar --zstd -xf "$archive" --strip-components=1 -C sdk
+          rm -- "$archive"
+
+      - name: Configure and build APK
+        working-directory: ${{ runner.temp }}/sdk
+        run: |
+          grep -E '^src-git --root=package base ' feeds.conf.default > feeds.conf
+          grep -E '^src-git (packages|luci) ' ../feeds.buildinfo >> feeds.conf
+          ./scripts/feeds update base packages luci
+          ./scripts/feeds install python3 luci-base
+
+          mkdir -p "package/$PACKAGE"
+          git -C "$GITHUB_WORKSPACE" archive HEAD | tar -x -C "package/$PACKAGE"
+          version=$(sed -n 's/^PKG_VERSION:=//p' "package/$PACKAGE/Makefile")
+          revision=$(sed -n 's/^PKG_RELEASE:=//p' "package/$PACKAGE/Makefile")
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$version-r$revision" ]]; then
+            echo "::error::The tag must match the package version v$version-r$revision"
+            exit 1
+          fi
+
+          printf 'CONFIG_PACKAGE_%s=m\n' "$PACKAGE" > .config
+          make defconfig
+          grep -Fxq 'CONFIG_USE_APK=y' .config
+          grep -Fxq "CONFIG_PACKAGE_$PACKAGE=m" .config
+          make "package/$PACKAGE/compile" -j"$(nproc)" V=s > build.log 2>&1 || {
+            tail -n 180 build.log
+            exit 1
+          }
+
+          name="$PACKAGE-$version-r$revision.apk"
+          apk="bin/packages/$ARCH/base/$name"
+          mkdir -p "$RUNNER_TEMP/apk"
+          cp "$apk" "$RUNNER_TEMP/apk/"
+          mkdir "$RUNNER_TEMP/apk-keys"
+          cp public-key.pem "$RUNNER_TEMP/apk-keys/"
+          staging_dir/host/bin/apk --keys-dir "$RUNNER_TEMP/apk-keys" verify "$apk"
+          staging_dir/host/bin/apk adbdump --format json "$apk" |
+            jq -e --arg package "$PACKAGE" --arg arch "$ARCH" --arg version "$version-r$revision" \
+              '.info | .name == $package and .arch == $arch and .version == $version'
+          (cd "$RUNNER_TEMP/apk" && sha256sum "$name" > SHA256SUMS)
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: apk
+          path: ${{ runner.temp }}/apk/
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: apk
+          path: apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        working-directory: apk
+        run: |
+          sha256sum --check SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes *.apk SHA256SUMS
