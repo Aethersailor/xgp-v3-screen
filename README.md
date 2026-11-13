@@ -2,6 +2,8 @@
 
 NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
 
+此版本以 [带 LuCI 的社区版](https://github.com/junhong-l/xgp-v3-screen/tree/85b792d2dd224b8c45811ec260e580df51a499e7) 为基线，通过内建 `spidev` 驱动板载 GC9307。
+
 ## 项目来源
 
 - **原始项目**: [zzzz0317/xgp-v3-screen](https://github.com/zzzz0317/xgp-v3-screen)
@@ -12,11 +14,9 @@ NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
 
 本项目在原始版本基础上进行了以下改造：
 
-### 1. 集成硬件驱动
-- ✅ 内置 `kmod-fb-tft-gc9307` 驱动源码，无需单独安装
-- ✅ 使用标准 Linux framebuffer API
-- ✅ 支持通过配置指定 framebuffer 设备路径
-- ✅ 编译时自动构建驱动和应用两个包
+### 1. 用户态屏幕驱动
+- 通过 `/dev/spidev3.0` 和 GPIO 字符设备发送 GC9307 命令及局部刷新数据。
+- 使用板载 LED 接口控制背光。
 
 ### 2. 新增 LuCI Web 控制界面
 - ✅ 集成到 OpenWrt 管理界面（服务 → XGP Screen）
@@ -24,9 +24,8 @@ NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
   - 启用/禁用屏幕（同时控制背光）
   - 切换动画类型（10种动画效果）
   - 默认停留时间
-  - 跳过启动/闪屏画面
+  - 跳过启动/闪屏选项沿用社区版。当前社区版入口直接开始状态页轮播。
   - 每个页面独立配置（启用、停留时间、显示顺序）
-  - Framebuffer 设备选择
   - 流量监控接口配置和手动清零
 
 ### 3. 屏幕切换动画
@@ -47,16 +46,12 @@ NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
 ### 4. 修复 Modem IP 显示问题
 - ✅ 支持 `wwan*` 和 `rmnet_mhi*` 两种接口类型
 
-### 5. 防止控制台日志干扰
-- ✅ 启动时自动禁用 framebuffer 控制台输出
-- ✅ 降低内核打印级别，防止设备插拔日志显示在屏幕上
-
-### 6. 屏幕管理优化
+### 5. 屏幕管理
 - ✅ 移除硬编码的屏幕切换逻辑
 - ✅ 由配置文件统一管理屏幕切换
-- ✅ 关闭屏幕时自动关闭背光并清空显示
+- ✅ 关闭屏幕时自动关闭背光
 
-### 7. 新增流量监控页面
+### 6. 流量监控页面
 - ✅ 实时显示WAN接口上传/下载流量统计
 - ✅ 支持自定义监控接口列表（eth1, wwan, wan, pppoe等）
 - ✅ 支持前缀匹配，灵活配置移动网络接口
@@ -71,14 +66,10 @@ NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
 
 ```
 xgp-v3-screen/
-├── Makefile                    # OpenWrt 包构建文件（包含驱动和应用）
-├── kmod-fb-tft-gc9307/        # GC9307 驱动源码
-│   ├── src/
-│   │   ├── fb_gc9307.c
-│   │   ├── fbtft.h
-│   │   └── Makefile
-│   └── LICENSE-DRIVER
+├── Makefile                    # OpenWrt 用户态软件包
+├── kmod-fb-tft-gc9307/         # 社区版驱动参考源码
 ├── files/
+│   ├── bind-panel.sh          # 检查板型并绑定 spidev
 │   ├── modem_info.py          # Modem 信息获取脚本
 │   ├── xgp_screen.config      # 默认 UCI 配置
 │   ├── uci-defaults-xgp-screen # UCI 初始化脚本
@@ -90,6 +81,7 @@ xgp-v3-screen/
 │       └── xgp_screen.lua
 └── src/
     ├── main.c                  # 主程序
+    ├── gc9307_spi.c/h          # LVGL SPI 显示后端
     ├── screen_config.c/h       # 配置解析模块
     ├── screen_manager.c/h      # 屏幕管理器
     └── ui/                     # LVGL UI 文件
@@ -99,12 +91,7 @@ xgp-v3-screen/
 
 ### 前置条件
 
-确保您的 OpenWrt 编译环境已经选择了以下内核模块：
-```bash
-make menuconfig
-# 进入: Kernel modules → Video Support → kmod-fb-tft
-# 确保 kmod-fb-tft 已选中（驱动依赖此包）
-```
+使用 ImmortalWrt `rockchip/armv8` SDK。设备需要内建 `spidev`、GPIO 字符设备和板载背光接口。
 
 ### 1. 放置源码
 ```bash
@@ -123,19 +110,18 @@ make menuconfig
 make package/xgp-v3-screen/compile -j$(nproc)
 ```
 
-编译完成后会生成两个包：
-- `kmod-fb-tft-gc9307-*.apk` - GC9307 LCD 驱动（内核模块）
-- `xgp-v3-screen-*.apk` - 屏幕控制程序（依赖驱动包）
+编译生成 `aarch64_generic` 架构的 `xgp-v3-screen` 用户态包。
 
 ### 4. 安装
-```bash
-# APK 包管理器 (ImmortalWrt 25.x)
-# 驱动会作为依赖自动安装
-apk add --allow-untrusted xgp-v3-screen-*.apk
+如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
 
-# OPKG 包管理器 (OpenWrt)
-opkg install xgp-v3-screen-*.ipk
+```bash
+/etc/init.d/xgp-lcd stop
+/etc/init.d/xgp-lcd disable
+apk add --allow-untrusted ./xgp-v3-screen-2.2-r2.apk
 ```
+
+回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。
 
 ## 配置文件
 
@@ -144,7 +130,6 @@ opkg install xgp-v3-screen-*.ipk
 ```
 config screen 'main'
     option enabled '1'
-    option fb_device ''
     option scroll_type 'slide_up'
     option default_delay '5000'
     option skip_boot '0'
@@ -199,24 +184,20 @@ uci commit xgp_screen
 
 **数据存储：**
 - 位置: `/etc/xgp_screen_traffic.dat`
-- 格式: 二进制格式，包含总流量和当日流量
+- 格式: 文本格式，包含总流量和当日流量
 - 更新频率: 每2秒
 - 重置时间: 每日00:00自动重置当日统计
-```
-
 ## 依赖
 
 **编译依赖：**
 - OpenWrt 编译环境
-- `kmod-fb-tft` - Linux framebuffer TFT 驱动框架（必须先在内核中选中）
 
 **运行时依赖：**
 - `python3` - Modem 信息获取
 - `libpthread` - 多线程支持
 - `libstdcpp` - C++ 标准库
 - `luci-base` - LuCI 基础框架
-- `kmod-fb-tft` - 会自动安装
-- `kmod-fb-tft-gc9307` - GC9307 LCD framebuffer 驱动（已集成，自动编译和安装）
+- `luci-compat` - Lua CBI 配置界面
 
 ## 服务管理
 

@@ -13,7 +13,7 @@ def get_modem_info():
             check=True
         )
         data = json.loads(result.stdout)
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+    except (FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError):
         return None
     target_keys = {
         'revision', 'temperature', 'voltage', 'connect_status',

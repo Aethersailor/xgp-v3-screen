@@ -14,11 +14,6 @@ o = s:option(Flag, "enabled", translate("启用屏幕"), translate("关闭后将
 o.rmempty = false
 o.default = "1"
 
-o = s:option(Value, "fb_device", translate("Framebuffer设备"), 
-    translate("留空自动检测，或手动指定如 /dev/fb0 或 /dev/fb1"))
-o.placeholder = "自动检测"
-o.rmempty = true
-
 o = s:option(ListValue, "scroll_type", translate("切换动画"))
 o:value("none", translate("无动画"))
 o:value("fade", translate("淡入淡出"))

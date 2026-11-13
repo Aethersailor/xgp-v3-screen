@@ -6,6 +6,8 @@
 #include "ui/ui.h"
 #include "screen_config.h"
 #include "screen_manager.h"
+#include "gc9307_spi.h"
+#include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
@@ -28,27 +30,19 @@
 #define MAX_IFACE_NAME_LEN 16
 #define MAX_IP_ADDR_LEN 16
 
-static const char *getenv_default(const char *name, const char *dflt)
+static volatile sig_atomic_t stop_requested;
+
+static void request_stop(int signal_number)
 {
-    return getenv(name) ?: dflt;
+    (void)signal_number;
+    stop_requested = 1;
 }
 
-static void lv_linux_disp_init(void)
+static uint32_t monotonic_ms(void)
 {
-    const char *device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
-    if (device && device[0] != '\0') {
-        printf("Environment variable LV_LINUX_FBDEV_DEVICE is set: %s\n", device);
-    } else if (access("/dev/fb1", F_OK) == 0) {
-        device = "/dev/fb1";
-    } else if (access("/dev/fb0", F_OK) == 0) {
-        device = "/dev/fb0";
-    } else {
-        fprintf(stderr, "Error: No suitable framebuffer device found!\n");
-        exit(EXIT_FAILURE);
-    }
-    printf("Using framebuffer device: %s\n", device);
-    lv_display_t *disp = lv_linux_fbdev_create();
-    lv_linux_fbdev_set_file(disp, device);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (uint32_t)((uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000);
 }
 
 void format_memory_size(long bytes, char *buffer)
@@ -769,10 +763,11 @@ int main(void)
         return 1;
     }
 
+    signal(SIGTERM, request_stop);
+    signal(SIGINT, request_stop);
     lv_init();
-
-    /*Linux display device init*/
-    lv_linux_disp_init();
+    lv_tick_set_cb(monotonic_ms);
+    gc9307_spi_init();
 
     // 初始化UI (不使用原有的自动切换)
     ui_init_screens_only();
@@ -786,7 +781,7 @@ int main(void)
     // 启动屏幕管理器 (自动切换)
     screen_manager_start();
 
-    while (1)
+    while (!stop_requested)
     {
         lv_timer_handler();
         usleep(5000);

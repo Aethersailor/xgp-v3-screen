@@ -13,6 +13,7 @@ target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR} ui)
 file(GLOB_RECURSE UI_SOURCES "ui/*.c")
 add_executable(zz_xgp_screen 
     main.c 
+    gc9307_spi.c
     screen_config.c 
     screen_manager.c 
     ${UI_SOURCES}
