@@ -74,11 +74,9 @@ xgp-v3-screen/
 │   ├── xgp_screen.config      # 默认 UCI 配置
 │   ├── uci-defaults-xgp-screen # UCI 初始化脚本
 │   └── zz_xgp_screen.init     # procd 服务脚本
-├── luasrc/                     # LuCI 应用
-│   ├── controller/
-│   │   └── xgp_screen.lua
-│   └── model/cbi/
-│       └── xgp_screen.lua
+├── htdocs/                     # LuCI JavaScript 配置页
+├── po/                         # LuCI 翻译
+├── root/                       # LuCI 菜单、rpcd 权限及流量清零接口
 └── src/
     ├── main.c                  # 主程序
     ├── gc9307_spi.c/h          # LVGL SPI 显示后端
@@ -96,21 +94,23 @@ xgp-v3-screen/
 ### 1. 放置源码
 ```bash
 # 将项目放入 OpenWrt 的 package 目录
-cp -r xgp-v3-screen ~/openwrt/package/
+cp -r xgp-v3-screen ~/openwrt/package/luci-app-xgp-v3-screen
 ```
 
 ### 2. 选择包
 ```bash
 make menuconfig
-# 进入 Utilities → xgp-v3-screen
+# 进入 Utilities，选择 luci-app-xgp-v3-screen
 ```
 
 ### 3. 编译
 ```bash
-make package/xgp-v3-screen/compile -j$(nproc)
+make package/luci-app-xgp-v3-screen/compile -j$(nproc)
 ```
 
-编译生成 `aarch64_generic` 架构的 `xgp-v3-screen` 用户态包。
+编译生成 `aarch64_generic` 架构的 `luci-app-xgp-v3-screen`，同一个包包含屏幕服务和 LuCI 界面。
+
+GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载构建产物。推送与 Makefile 版本一致的标签（例如 `v2.2-r3`）后，工作流会将 APK 和 `SHA256SUMS` 上传到 GitHub Release。
 
 ### 4. 安装
 如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
@@ -118,12 +118,16 @@ make package/xgp-v3-screen/compile -j$(nproc)
 ```bash
 /etc/init.d/xgp-lcd stop
 /etc/init.d/xgp-lcd disable
-apk add --allow-untrusted ./xgp-v3-screen-2.2-r2.apk
+apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r3.apk
 ```
 
 回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。
 
 ## 配置文件
+
+在 LuCI 的「服务 → XGP 屏幕」中管理屏幕开关、页面轮播和流量统计。「保存」暂存配置，「保存并应用」提交配置并重载屏幕服务。单页停留时间填 `0` 时使用默认停留时间。
+
+`skip_boot` 和 `skip_splash` 保留在 UCI 中供兼容。当前屏幕程序直接进入轮播。
 
 配置文件位置: `/etc/config/xgp_screen`
 
@@ -179,7 +183,7 @@ uci set xgp_screen.settings.reset='1'
 uci commit xgp_screen
 /etc/init.d/zz_xgp_screen restart
 
-# 清零后标志会自动重置为0
+# 屏幕下次显示流量统计页时清零，标志自动恢复为 0
 ```
 
 **数据存储：**
@@ -197,7 +201,6 @@ uci commit xgp_screen
 - `libpthread` - 多线程支持
 - `libstdcpp` - C++ 标准库
 - `luci-base` - LuCI 基础框架
-- `luci-compat` - Lua CBI 配置界面
 
 ## 服务管理
 

@@ -1,8 +1,9 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=xgp-v3-screen
+PKG_NAME:=luci-app-xgp-v3-screen
 PKG_VERSION:=2.2
-PKG_RELEASE:=2
+PKG_RELEASE:=3
+PKG_BUILD_DEPENDS:=luci-base/host
 PKG_LICENSE:=GPL-3.0-only
 
 LVGL_COMMIT:=6ec2c47ceed51dd8872a48dd935aecc70fa01ffe
@@ -20,20 +21,20 @@ endef
 $(eval $(call Download,lvgl))
 
 # Application package
-define Package/xgp-v3-screen
+define Package/$(PKG_NAME)
 	SECTION:=utils
 	CATEGORY:=Utilities
 	TITLE:=NLnet XiGuaPi V3 TFT Screen
-	DEPENDS:=@TARGET_rockchip_armv8 +python3 +libpthread +libstdcpp +luci-base +luci-compat
+	DEPENDS:=@TARGET_rockchip_armv8 +python3 +libpthread +libstdcpp +luci-base
 	URL:=https://github.com/zzzz0317/xgp-v3-screen
 endef
 
-define Package/xgp-v3-screen/description
+define Package/$(PKG_NAME)/description
 	NLnet XiGuaPi V3 TFT Screen with integrated LuCI Web UI control.
 	Drives the GC9307 display through spidev and GPIO character devices.
 endef
 
-define Package/xgp-v3-screen/conffiles
+define Package/$(PKG_NAME)/conffiles
 /etc/config/xgp_screen
 endef
 
@@ -55,13 +56,22 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./files/xgp_screen.config $(1)/etc/config/xgp_screen
 	# LuCI files
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
-	$(INSTALL_DATA) ./luasrc/controller/xgp_screen.lua $(1)/usr/lib/lua/luci/controller/
-	$(INSTALL_DATA) ./luasrc/model/cbi/xgp_screen.lua $(1)/usr/lib/lua/luci/model/cbi/
+	$(INSTALL_DIR) $(1)/www/luci-static/resources/view
+	$(INSTALL_DATA) ./htdocs/luci-static/resources/view/xgp_screen.js $(1)/www/luci-static/resources/view/
+	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d $(1)/usr/share/rpcd/acl.d $(1)/usr/share/rpcd/ucode
+	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/xgp-v3-screen.json $(1)/usr/share/luci/menu.d/
+	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/xgp-v3-screen.json $(1)/usr/share/rpcd/acl.d/
+	$(INSTALL_DATA) ./root/usr/share/rpcd/ucode/xgp_screen.uc $(1)/usr/share/rpcd/ucode/
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
+	$(STAGING_DIR_HOSTPKG)/bin/po2lmo ./po/zh_Hans/xgp-v3-screen.po $(1)/usr/lib/lua/luci/i18n/xgp-v3-screen.zh-cn.lmo
 	# UCI defaults
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/uci-defaults-xgp-screen $(1)/etc/uci-defaults/99-xgp-screen
+endef
+
+define Package/$(PKG_NAME)/postinst
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || /etc/init.d/rpcd reload
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

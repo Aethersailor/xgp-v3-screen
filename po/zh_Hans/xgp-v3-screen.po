@@ -1,0 +1,109 @@
+msgid ""
+msgstr ""
+"Language: zh_Hans\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "XGP Screen"
+msgstr "XGP 屏幕"
+
+msgid "Enable display"
+msgstr "启用屏幕"
+
+msgid "Disabling the display stops the screen service and turns off the backlight."
+msgstr "关闭后将停止屏幕服务并熄灭背光。"
+
+msgid "Page transition"
+msgstr "切页动画"
+
+msgid "No animation"
+msgstr "无动画"
+
+msgid "Fade"
+msgstr "淡入淡出"
+
+msgid "Slide up"
+msgstr "向上滑动"
+
+msgid "Slide down"
+msgstr "向下滑动"
+
+msgid "Slide left"
+msgstr "向左滑动"
+
+msgid "Slide right"
+msgstr "向右滑动"
+
+msgid "Cover up"
+msgstr "从下向上覆盖"
+
+msgid "Cover down"
+msgstr "从上向下覆盖"
+
+msgid "Cover left"
+msgstr "从右向左覆盖"
+
+msgid "Cover right"
+msgstr "从左向右覆盖"
+
+msgid "Default duration (ms)"
+msgstr "默认停留时间（毫秒）"
+
+msgid "Page rotation"
+msgstr "页面轮播"
+
+msgid "Pages are displayed in ascending order. Set a page duration to 0 to use the default duration."
+msgstr "数值较小的页面先显示。停留时间填 0 时使用默认停留时间。"
+
+msgid "System information"
+msgstr "系统信息"
+
+msgid "System status"
+msgstr "系统状态"
+
+msgid "Network information"
+msgstr "网络信息"
+
+msgid "Modem information"
+msgstr "调制解调器信息"
+
+msgid "Modem signal"
+msgstr "调制解调器信号"
+
+msgid "Traffic statistics"
+msgstr "流量统计"
+
+msgid "Display order"
+msgstr "显示顺序"
+
+msgid "Duration (ms)"
+msgstr "停留时间（毫秒）"
+
+msgid "Monitored devices"
+msgstr "监控设备"
+
+msgid "Enter a device name or prefix, such as wwan. An empty list uses eth1, wwan, wan and pppoe."
+msgstr "每项填写一个网络设备名或前缀，例如 wwan。列表为空时使用 eth1、wwan、wan 和 pppoe。"
+
+msgid "Reset traffic statistics"
+msgstr "清零流量统计"
+
+msgid "Reset statistics"
+msgstr "清零"
+
+msgid "Today's and all-time traffic totals will be cleared the next time the display shows the traffic statistics page."
+msgstr "屏幕下次显示流量统计页时，将清除今日及累计流量。"
+
+msgid "Traffic reset requested."
+msgstr "已请求清零流量统计。"
+
+msgid "Unable to request a traffic reset."
+msgstr "无法请求清零流量统计。"
+
+msgid "Enable at least one page before enabling the display."
+msgstr "启用屏幕时，至少要启用一个轮播页面。"
+
+msgid "Add at most 16 device names or prefixes."
+msgstr "最多可添加 16 个设备名或前缀。"
+
+msgid "Enter a valid device name or prefix."
+msgstr "请输入有效的网络设备名或前缀。"

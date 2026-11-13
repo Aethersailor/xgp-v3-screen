@@ -1,0 +1,14 @@
+{
+	"xgp-v3-screen": {
+		"description": "Configure the XiGuaPi V3 display",
+		"read": {
+			"uci": [ "xgp_screen" ]
+		},
+		"write": {
+			"uci": [ "xgp_screen" ],
+			"ubus": {
+				"luci.xgp_screen": [ "resetTraffic" ]
+			}
+		}
+	}
+}
