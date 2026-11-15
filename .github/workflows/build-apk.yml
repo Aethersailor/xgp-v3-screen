@@ -66,7 +66,16 @@ jobs:
           make defconfig
           grep -Fxq 'CONFIG_USE_APK=y' .config
           grep -Fxq "CONFIG_PACKAGE_$PACKAGE=m" .config
-          make "package/$PACKAGE/compile" -j"$(nproc)" V=s > build.log 2>&1 || {
+
+          make package/feeds/luci/luci-base/host/compile package/toolchain/compile \
+            -j"$(nproc)" V=s > prerequisites.log 2>&1 || {
+              tail -n 120 prerequisites.log
+              exit 1
+            }
+
+          # The SDK's top-level package target also schedules runtime dependency builds.
+          make -C "package/$PACKAGE" TOPDIR="$PWD" BUILD_SUBDIR="package/$PACKAGE" \
+            -j"$(nproc)" V=s compile > build.log 2>&1 || {
             tail -n 180 build.log
             exit 1
           }
