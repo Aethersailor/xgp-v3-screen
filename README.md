@@ -2,13 +2,11 @@
 
 面向 ImmortalWrt 的 NLnet XiGuaPi V3 板载 TFT 屏幕控制程序，提供 LuCI 配置界面。
 
-本项目以带 LuCI 的社区版 `85b792d` 为直接上游。[直接上游源码](https://github.com/junhong-l/xgp-v3-screen/tree/85b792d2dd224b8c45811ec260e580df51a499e7)
-
 ## 项目来源
 
-- **原始项目**: [zzzz0317/xgp-v3-screen](https://github.com/zzzz0317/xgp-v3-screen)
-- **原始作者**: zzzz0317
-- **许可证**: GPL-3.0
+- **原始项目**由 zzzz0317 开发。[zzzz0317/xgp-v3-screen](https://github.com/zzzz0317/xgp-v3-screen)
+- **带 LuCI 的社区版**是本项目的直接上游，移植以提交 `85b792d` 为基线。[junhong-l/xgp-v3-screen](https://github.com/junhong-l/xgp-v3-screen/tree/85b792d2dd224b8c45811ec260e580df51a499e7)
+- **许可证** GPL-3.0
 
 ## 改造内容
 
