@@ -1,8 +1,8 @@
 # XGP V3 Screen
 
-NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
+面向 ImmortalWrt 的 NLnet XiGuaPi V3 板载 TFT 屏幕控制程序，提供 LuCI 配置界面。
 
-此版本以 [带 LuCI 的社区版](https://github.com/junhong-l/xgp-v3-screen/tree/85b792d2dd224b8c45811ec260e580df51a499e7) 为基线，通过内建 `spidev` 驱动板载 GC9307。
+本项目以带 LuCI 的社区版 `85b792d` 为直接上游。[直接上游源码](https://github.com/junhong-l/xgp-v3-screen/tree/85b792d2dd224b8c45811ec260e580df51a499e7)
 
 ## 项目来源
 
@@ -12,65 +12,32 @@ NLnet XiGuaPi V3 TFT 屏幕控制程序，支持 Web 配置界面。
 
 ## 改造内容
 
-本项目在原始版本基础上进行了以下改造：
+### 移植显示后端到 ImmortalWrt
 
-### 1. 用户态屏幕驱动
-- 通过 `/dev/spidev3.0` 和 GPIO 字符设备发送 GC9307 命令及局部刷新数据。
-- 使用板载 LED 接口控制背光。
+上游通过 framebuffer 访问 GC9307，依赖 `kmod-fb-tft-gc9307` 和 `kmod-fb-tft`。本项目将 LVGL 显示后端移植到 ImmortalWrt 用户态，使用官方固件提供的 `spidev`、GPIO 字符设备和 LED 背光接口。
 
-### 2. 新增 LuCI Web 控制界面
-- ✅ 集成到 OpenWrt 管理界面（服务 → XGP Screen）
-- ✅ 支持配置项：
-  - 启用/禁用屏幕（同时控制背光）
-  - 切换动画类型（10种动画效果）
-  - 默认停留时间
-  - 跳过启动/闪屏选项沿用社区版。当前社区版入口直接开始状态页轮播。
-  - 每个页面独立配置（启用、停留时间、显示顺序）
-  - 流量监控接口配置和手动清零
+屏幕服务启动时，根据板型和设备树识别 GC9307，将 `spi3.0` 绑定到 `spidev`。程序经 `/dev/spidev3.0` 写入屏幕命令和 RGB565 像素，通过 GPIO 控制命令与数据切换及复位，通过 LED 接口控制背光。当前 SPI 速率为 50 MHz，切页转场时长为 300 ms。
 
-### 3. 屏幕切换动画
-支持以下动画效果：
-| 配置值 | 效果 |
-|-------|------|
-| `none` | 无动画 |
-| `fade` | 淡入淡出 |
-| `slide_up` | 向上滑动（默认） |
-| `slide_down` | 向下滑动 |
-| `slide_left` | 向左滑动 |
-| `slide_right` | 向右滑动 |
-| `over_up` | 从下往上覆盖 |
-| `over_down` | 从上往下覆盖 |
-| `over_left` | 从右往左覆盖 |
-| `over_right` | 从左往右覆盖 |
+### 使用原生 LuCI 配置和 APK 打包
 
-### 4. 修复 Modem IP 显示问题
-- ✅ 支持 `wwan*` 和 `rmnet_mhi*` 两种接口类型
+配置界面从上游的 Lua CBI 改为原生 LuCI JavaScript 表单，配套菜单、`rpcd` 访问权限和流量清零接口。屏幕服务、LuCI 配置页及翻译打包为 `luci-app-xgp-v3-screen`，使用 ImmortalWrt `rockchip/armv8` SDK 构建 APK。安装时由 ImmortalWrt 官方软件源提供用户态依赖。[依赖详情](#依赖)
 
-### 5. 屏幕管理
-- ✅ 移除硬编码的屏幕切换逻辑
-- ✅ 由配置文件统一管理屏幕切换
-- ✅ 关闭屏幕时自动关闭背光
+### 更新网络和调制解调器信息
 
-### 6. 流量监控页面
-- ✅ 实时显示WAN接口上传/下载流量统计
-- ✅ 支持自定义监控接口列表（eth1, wwan, wan, pppoe等）
-- ✅ 支持前缀匹配，灵活配置移动网络接口
-- ✅ 自动累加多个WAN接口流量（支持双WAN场景）
-- ✅ 数据持久化存储（`/etc/xgp_screen_traffic.dat`）
-- ✅ 每日零点自动重置当日统计
-- ✅ 手动清零功能（LuCI界面或命令行）
-- ✅ 智能单位转换（B/KB/MB/GB自动选择）
-- ✅ 每2秒自动刷新数据
+网络页通过 netifd 获取实际拨号设备和 LAN 的三层设备，用于显示 Modem IP、LAN IP 和统计 LAN 的 IPv4 ARP 条目。Modem IP 也支持按 `wwan*` 和 `rmnet_mhi*` 接口名前缀查找。
+
+屏幕可从 `luci-app-fm350` 读取频段、温度、信号等信息，并通过只读 AT 命令查询电压和 AMBR。QModem 仍可提供调制解调器信息及其支持的 CQI 指标。
 
 ## 项目结构
 
 ```
 xgp-v3-screen/
-├── Makefile                    # OpenWrt 用户态软件包
+├── Makefile                    # ImmortalWrt 用户态软件包
 ├── kmod-fb-tft-gc9307/         # 社区版驱动参考源码
 ├── files/
 │   ├── bind-panel.sh          # 检查板型并绑定 spidev
 │   ├── modem_info.py          # Modem 信息获取脚本
+│   ├── network_devices.sh     # 查询 Modem 和 LAN 对应的网络设备
 │   ├── xgp_screen.config      # 默认 UCI 配置
 │   ├── uci-defaults-xgp-screen # UCI 初始化脚本
 │   └── zz_xgp_screen.init     # procd 服务脚本
@@ -89,7 +56,7 @@ xgp-v3-screen/
 
 ### 前置条件
 
-使用 ImmortalWrt `rockchip/armv8` SDK。设备需要内建 `spidev`、GPIO 字符设备和板载背光接口。
+使用 ImmortalWrt `rockchip/armv8` SDK。安装前确认固件提供屏幕服务所需的设备接口。[依赖详情](#依赖)
 
 ### 1. 放置源码
 ```bash
@@ -110,7 +77,7 @@ make package/luci-app-xgp-v3-screen/compile -j$(nproc)
 
 编译生成 `aarch64_generic` 架构的 `luci-app-xgp-v3-screen`，同一个包包含屏幕服务和 LuCI 界面。
 
-GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载构建产物。推送与 Makefile 版本一致的标签（例如 `v2.2-r3`）后，工作流会将 APK 和 `SHA256SUMS` 上传到 GitHub Release。
+GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载构建产物。推送与 Makefile 版本一致的标签（例如 `v2.2-r8`）后，工作流会构建 APK，并将 APK 和 `SHA256SUMS` 发布到 GitHub Release。
 
 ### 4. 安装
 如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
@@ -118,7 +85,7 @@ GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 *
 ```bash
 /etc/init.d/xgp-lcd stop
 /etc/init.d/xgp-lcd disable
-apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r3.apk
+apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
 ```
 
 回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。
@@ -126,6 +93,8 @@ apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r3.apk
 ## 配置文件
 
 在 LuCI 的「服务 → XGP 屏幕」中管理屏幕开关、页面轮播和流量统计。「保存」暂存配置，「保存并应用」提交配置并重载屏幕服务。单页停留时间填 `0` 时使用默认停留时间。
+
+每页可单独设置启用状态、停留时间和顺序。通过 LuCI 停用屏幕时，屏幕服务和背光一并关闭。
 
 `skip_boot` 和 `skip_splash` 保留在 UCI 中供兼容。当前屏幕程序直接进入轮播。
 
@@ -163,7 +132,26 @@ config page 'traffic'
 # ... 更多页面配置
 ```
 
+### 切页动画
+
+在 LuCI 中选择切换效果，或通过 UCI 的 `scroll_type` 设置。
+
+| 配置值 | 效果 |
+| --- | --- |
+| `none` | 无动画 |
+| `fade` | 淡入 |
+| `slide_up` | 向上滑动（默认） |
+| `slide_down` | 向下滑动 |
+| `slide_left` | 向左滑动 |
+| `slide_right` | 向右滑动 |
+| `over_up` | 从下往上覆盖 |
+| `over_down` | 从上往下覆盖 |
+| `over_left` | 从右往左覆盖 |
+| `over_right` | 从左往右覆盖 |
+
 ### 流量统计功能
+
+统计页汇总所配置接口的上传和下载流量。接口列表支持按名称或前缀匹配，统计值根据大小在 B、KB、MB、GB 之间切换。
 
 **支持的接口类型：**
 - 有线WAN: `eth1`
@@ -193,14 +181,10 @@ uci commit xgp_screen
 - 重置时间: 每日00:00自动重置当日统计
 ## 依赖
 
-**编译依赖：**
-- OpenWrt 编译环境
-
-**运行时依赖：**
-- `python3` - Modem 信息获取
-- `libpthread` - 多线程支持
-- `libstdcpp` - C++ 标准库
-- `luci-base` - LuCI 基础框架
+- **固件提供的设备接口**包括 `spidev`、GPIO 字符设备和板载背光接口。当前包的设备检查针对 `nlnet,xiguapi-v3` 及设备树中的 `galaxycore,gc9307`。
+- **官方软件源提供的运行时依赖**包括执行 Modem 采集脚本的 `python3`、多线程运行库 `libpthread`、C++ 标准库 `libstdcpp` 和 LuCI 基础包 `luci-base`。
+- **构建依赖**包括 ImmortalWrt `rockchip/armv8` SDK 和用于编译 LuCI 翻译的 `luci-base/host`。
+- **可选调制解调器数据源**为 `luci-app-fm350` 或 QModem。设备安装了相应管理插件后，屏幕即可读取其提供的调制解调器信息。
 
 ## 服务管理
 
