@@ -202,7 +202,7 @@ void gc9307_spi_init(void)
 {
     uint8_t mode = SPI_MODE_0;
     uint8_t bits = 8;
-    uint32_t speed = 8000000;
+    uint32_t speed = 50000000;
 
     // Acquire both GPIOs before touching the panel or backlight.
     open_gpio();

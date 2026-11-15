@@ -207,7 +207,8 @@ int get_interface_ipv4_address(const char *iface_name, char *ip_addr, size_t ip_
     struct ifreq ifr;
     struct sockaddr_in *sin;
 
-    if (iface_name == NULL || ip_addr == NULL || ip_addr_len < MAX_IP_ADDR_LEN)
+    if (iface_name == NULL || iface_name[0] == '\0' ||
+        ip_addr == NULL || ip_addr_len < MAX_IP_ADDR_LEN)
     {
         return -1;
     }
@@ -297,41 +298,52 @@ int get_nf_conntrack_count()
     return count;
 }
 
-int count_arp_online()
-{
-    FILE *fp;
-    char command[] = "cat /proc/net/arp";
-    char line[256];
-    int count = 0;
-    bool is_header = true;
+static char lan_device[IFNAMSIZ + 1];
+static char modem_device[IFNAMSIZ + 1];
 
-    fp = popen(command, "r");
+static void update_network_devices(void)
+{
+    lan_device[0] = '\0';
+    modem_device[0] = '\0';
+    FILE *fp = popen("/usr/zz/network_devices.sh", "r");
     if (fp == NULL)
     {
-        perror("popen failed");
+        return;
+    }
+    if (fgets(lan_device, sizeof(lan_device), fp) != NULL)
+    {
+        lan_device[strcspn(lan_device, "\n")] = '\0';
+    }
+    if (fgets(modem_device, sizeof(modem_device), fp) != NULL)
+    {
+        modem_device[strcspn(modem_device, "\n")] = '\0';
+    }
+    pclose(fp);
+}
+
+static int count_arp_online(const char *device)
+{
+    char line[256];
+    int count = 0;
+
+    FILE *fp = fopen("/proc/net/arp", "r");
+    if (fp == NULL)
+    {
         return -1;
     }
 
     while (fgets(line, sizeof(line), fp) != NULL)
     {
-        if (is_header)
+        unsigned int flags;
+        char entry_device[IFNAMSIZ];
+        if (sscanf(line, "%*s %*s %x %*s %*s %15s", &flags, entry_device) == 2 &&
+            flags == 0x2 && strcmp(entry_device, device) == 0)
         {
-            is_header = false;
-            continue;
-        }
-
-        char ip[16], hw_type[8], flags[8], hw_addr[18], mask[8], device[16];
-        if (sscanf(line, "%15s %7s %7s %17s %7s %15s",
-                   ip, hw_type, flags, hw_addr, mask, device) == 6)
-        {
-            if (strcmp(flags, "0x2") == 0)
-            {
-                count++;
-            }
+            count++;
         }
     }
 
-    pclose(fp);
+    fclose(fp);
     return count;
 }
 
@@ -362,7 +374,8 @@ static char buf_modem_voltage[DEFAULT_VALUE_SIZE];
 static char buf_modem_connect[DEFAULT_VALUE_SIZE];
 static char buf_modem_sim[DEFAULT_VALUE_SIZE];
 static char buf_modem_isp[DEFAULT_VALUE_SIZE];
-static char buf_modem_cqi[DEFAULT_VALUE_SIZE];
+static const char *modem_radio_detail_label = "CQI: ";
+static char buf_modem_radio_detail[DEFAULT_VALUE_SIZE];
 static char buf_modem_ambr[DEFAULT_VALUE_SIZE];
 static char buf_modem_networkmode[DEFAULT_VALUE_SIZE];
 static char buf_modem_signal0name[DEFAULT_VALUE_SIZE];
@@ -389,7 +402,7 @@ void parse_modem_info()
     strcpy(buf_modem_connect, UNKNOWN_VALUE_REPLACE_STRING);
     strcpy(buf_modem_sim, UNKNOWN_VALUE_REPLACE_STRING);
     strcpy(buf_modem_isp, UNKNOWN_VALUE_REPLACE_STRING);
-    strcpy(buf_modem_cqi, UNKNOWN_VALUE_REPLACE_STRING);
+    strcpy(buf_modem_radio_detail, UNKNOWN_VALUE_REPLACE_STRING);
     strcpy(buf_modem_ambr, UNKNOWN_VALUE_REPLACE_STRING);
     strcpy(buf_modem_networkmode, UNKNOWN_VALUE_REPLACE_STRING);
     strcpy(buf_modem_signal0name, UNKNOWN_VALUE_REPLACE_STRING);
@@ -445,9 +458,10 @@ void parse_modem_info()
             {
                 strncpy(buf_modem_isp, value, DEFAULT_VALUE_SIZE - 1);
             }
-            else if (strcmp(key, "cqi") == 0)
+            else if (strcmp(key, "cqi") == 0 || strcmp(key, "band") == 0)
             {
-                strncpy(buf_modem_cqi, value, DEFAULT_VALUE_SIZE - 1);
+                modem_radio_detail_label = strcmp(key, "band") == 0 ? "频段: " : "CQI: ";
+                strncpy(buf_modem_radio_detail, value, DEFAULT_VALUE_SIZE - 1);
             }
             else if (strcmp(key, "ambr") == 0)
             {
@@ -518,8 +532,8 @@ void parse_modem_info()
                 strncpy(buf_modem_signal2unit, value, DEFAULT_VALUE_SIZE - 1);
             }
         }
+        pclose(fp);
     }
-    pclose(fp);
 
     if (ui_valModemRev != NULL)
     {
@@ -541,9 +555,10 @@ void parse_modem_info()
     {
         lv_label_set_text(ui_valModemNetworkType, buf_modem_networkmode);
     }
-    if (ui_valModemCQI != NULL)
+    if (ui_txtModemCQI != NULL)
     {
-        lv_label_set_text(ui_valModemCQI, buf_modem_cqi);
+        lv_label_set_text_static(ui_txtModemCQI, modem_radio_detail_label);
+        lv_label_set_text(ui_valModemCQI, buf_modem_radio_detail);
     }
     if (ui_valModemAmbr != NULL)
     {
@@ -705,7 +720,8 @@ static void update_screen_data(void)
     }
     if (ui_valModemIp != NULL)
     {
-        if (get_first_wwan_ipv4_address(buf_modem_ip, sizeof(buf_modem_ip)) == 0)
+        if (get_interface_ipv4_address(modem_device, buf_modem_ip, sizeof(buf_modem_ip)) == 0 ||
+            get_first_wwan_ipv4_address(buf_modem_ip, sizeof(buf_modem_ip)) == 0)
         {
             lv_label_set_text(ui_valModemIp, buf_modem_ip);
         }
@@ -727,7 +743,7 @@ static void update_screen_data(void)
     }
     if (ui_valLanIp != NULL)
     {
-        if (get_interface_ipv4_address("br-lan", buf_lan_ip, sizeof(buf_lan_ip)) == 0)
+        if (get_interface_ipv4_address(lan_device, buf_lan_ip, sizeof(buf_lan_ip)) == 0)
         {
             lv_label_set_text(ui_valLanIp, buf_lan_ip);
         }
@@ -743,7 +759,7 @@ static void update_screen_data(void)
     }
     if (ui_valArpCount != NULL)
     {
-        snprintf(buf_arp_count, DEFAULT_VALUE_SIZE, "%d", count_arp_online());
+        snprintf(buf_arp_count, DEFAULT_VALUE_SIZE, "%d", count_arp_online(lan_device));
         lv_label_set_text(ui_valArpCount, buf_arp_count);
     }
 }
@@ -777,6 +793,7 @@ int main(void)
 
     /*Handle LVGL tasks*/
     update_static_value();
+    update_network_devices();
 
     // 启动屏幕管理器 (自动切换)
     screen_manager_start();
@@ -797,6 +814,7 @@ int main(void)
             if (!g_screen_config.enabled) {
                 break;  // 退出主循环
             }
+            update_network_devices();
         }
 
         if (update_screen_data_time_counter >= 200)

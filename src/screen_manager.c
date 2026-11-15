@@ -4,6 +4,8 @@
 #include "screen_manager.h"
 #include <stdio.h>
 
+#define SCREEN_TRANSITION_MS 300
+
 screen_manager_t g_screen_manager = {0};
 
 // 延迟更新页码的定时器回调
@@ -96,7 +98,7 @@ void screen_manager_next(void)
             lv_timer_set_period(g_screen_manager.switch_timer, delay);
         }
 
-        _ui_screen_change(screen, screen_manager_get_anim_type(), 200, 0, init_func);
+        _ui_screen_change(screen, screen_manager_get_anim_type(), SCREEN_TRANSITION_MS, 0, init_func);
 
         // 延迟更新页码显示 (等待页面初始化完成)
         lv_timer_create(update_page_number_timer_cb, 50, (void*)(intptr_t)next_page);
@@ -115,7 +117,7 @@ void screen_manager_goto(page_type_t page)
             void (*init_func)(void) = screen_manager_get_init_func(page);
             
             if (screen != NULL && init_func != NULL) {
-                _ui_screen_change(screen, screen_manager_get_anim_type(), 200, 0, init_func);
+                _ui_screen_change(screen, screen_manager_get_anim_type(), SCREEN_TRANSITION_MS, 0, init_func);
             }
             return;
         }

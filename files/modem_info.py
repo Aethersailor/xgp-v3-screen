@@ -4,6 +4,94 @@
 import json
 import subprocess
 
+def call_fm350(method, args=None):
+    command = ['/bin/ubus', '-t', '3', 'call', 'luci.fm350', method]
+    if args is not None:
+        command.append(json.dumps(args))
+    try:
+        raw = subprocess.check_output(
+            command,
+            stderr=subprocess.DEVNULL,
+            timeout=4,
+        )
+        data = json.loads(raw)
+        if isinstance(data, dict) and isinstance(data.get("raw"), str):
+            data = json.loads(data["raw"])
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {}
+    return data if isinstance(data, dict) and data.get("ok") else {}
+
+
+def read_fm350_at_fields(command, response):
+    result = call_fm350("at", {"cmd": command}).get("result")
+    if not isinstance(result, str):
+        return
+    for line in result.splitlines():
+        prefix, _, value = line.partition(":")
+        if prefix.strip() == response:
+            yield [field.strip() for field in value.split(",")]
+
+
+def get_fm350_ambr(pdp):
+    cid = pdp.get("cid")
+    if not pdp.get("active") or type(cid) is not int or not 1 <= cid <= 16:
+        return None
+
+    for query in ("CGEQOSRDP", "C5GQOSRDP"):
+        for fields in read_fm350_at_fields(f"AT+{query}={cid}", f"+{query}"):
+            # TS 27.007 places downlink and uplink AMBR (kbit/s) in fields 7 and 8.
+            if len(fields) >= 8 and fields[0] == str(cid):
+                downlink, uplink = fields[6:8]
+                if downlink.isdigit() and uplink.isdigit():
+                    return f"{int(downlink) / 1000:g}/{int(uplink) / 1000:g} Mbps"
+    return None
+
+
+def get_fm350_voltage():
+    for fields in read_fm350_at_fields("AT+CBC", "+CBC"):
+        # Fibocom reports millivolts where the standard response has battery percentage.
+        if len(fields) == 2 and len(fields[1]) == 4 and fields[1].isdigit():
+            return f"{fields[1]} mV"
+    return None
+
+
+def get_fm350_info():
+    status = call_fm350("status").get("status")
+    if not isinstance(status, dict) or not status.get("at_ready"):
+        return None
+
+    info = status.get("info") or {}
+    signal = status.get("signal") or {}
+    temperature = (status.get("temperature") or {}).get("modem")
+    fields = {
+        "revision": info.get("firmware"),
+        "isp": signal.get("operator_name") or signal.get("operator"),
+        "networkmode": signal.get("rat"),
+        "band": signal.get("band") or "-",
+        "ambr": get_fm350_ambr(status.get("pdp") or {}),
+        "voltage": get_fm350_voltage(),
+    }
+    if isinstance(temperature, (int, float)):
+        fields["temperature"] = f"{temperature:g}℃"
+
+    ranges = (
+        ("RSRP", -140, -44, "dBm"),
+        ("RSRQ", -43, 0, "dB"),
+        ("SINR", -23, 40, "dB"),
+    )
+    for index, (name, minimum, maximum, unit) in enumerate(ranges):
+        value = signal.get(name.lower())
+        if isinstance(value, (int, float)):
+            prefix = f"signal{index}"
+            fields[f"{prefix}name"] = name
+            fields[f"{prefix}value"] = round(value)
+            fields[f"{prefix}min"] = minimum
+            fields[f"{prefix}max"] = maximum
+            fields[f"{prefix}unit"] = f"{value:g} {unit}"
+
+    return "\n".join(f"{key}:{value}" for key, value in fields.items() if value is not None and value != "")
+
+
 def get_modem_info():
     try:
         result = subprocess.run(
@@ -116,5 +204,5 @@ def get_modem_info():
     return "\n".join(result_txt)
 
 if __name__ == '__main__':
-    info = get_modem_info()
+    info = get_fm350_info() or get_modem_info()
     print(info)

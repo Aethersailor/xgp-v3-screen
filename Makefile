@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-xgp-v3-screen
 PKG_VERSION:=2.2
-PKG_RELEASE:=3
+PKG_RELEASE:=8
 PKG_BUILD_DEPENDS:=luci-base/host
 PKG_LICENSE:=GPL-3.0-only
 
@@ -50,6 +50,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/zz
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/zz_xgp_screen $(1)/usr/zz/zz_xgp_screen
 	$(INSTALL_BIN) ./files/modem_info.py $(1)/usr/zz/modem_info.py
+	$(INSTALL_BIN) ./files/network_devices.sh $(1)/usr/zz/network_devices.sh
 	$(INSTALL_BIN) ./files/bind-panel.sh $(1)/usr/zz/bind-panel.sh
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/zz_xgp_screen.init $(1)/etc/init.d/zz_xgp_screen
