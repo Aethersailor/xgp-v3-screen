@@ -23,6 +23,7 @@
 static int spi_fd = -1;
 static int lines_fd = -1;
 static bool backlight_on;
+static unsigned int backlight_level;
 static uint32_t draw_buffer[PANEL_WIDTH * 24 * sizeof(uint16_t) / sizeof(uint32_t)];
 // The board's spidev buffer is 4096 bytes. Keep each transfer on a pixel boundary.
 static uint8_t wire_buffer[3840];
@@ -33,10 +34,10 @@ static void fail(const char *operation)
     exit(EXIT_FAILURE);
 }
 
-static int set_backlight(bool on)
+static int write_backlight(unsigned int level)
 {
-    const char *value = on ? "255\n" : "0\n";
-    const size_t size = strlen(value);
+    char value[16];
+    const int size = snprintf(value, sizeof(value), "%u\n", level);
     int fd = open(BACKLIGHT_PATH, O_WRONLY | O_CLOEXEC);
     if (fd < 0)
         return -1;
@@ -44,7 +45,7 @@ static int set_backlight(bool on)
     ssize_t written = write(fd, value, size);
     int error = written < 0 ? errno : EIO;
     close(fd);
-    if (written != (ssize_t)size) {
+    if (written != size) {
         errno = error;
         return -1;
     }
@@ -53,7 +54,7 @@ static int set_backlight(bool on)
 
 static void close_panel(void)
 {
-    if (backlight_on && set_backlight(false) < 0)
+    if (backlight_on && write_backlight(0) < 0)
         perror("turn off GC9307 backlight");
     if (spi_fd >= 0)
         close(spi_fd);
@@ -191,7 +192,7 @@ static void flush_pixels(lv_display_t *display, const lv_area_t *area, uint8_t *
         spi_write(wire_buffer, used);
 
     if (!backlight_on && lv_display_flush_is_last(display)) {
-        if (set_backlight(true) < 0)
+        if (write_backlight(backlight_level) < 0)
             fail("turn on GC9307 backlight");
         backlight_on = true;
     }
@@ -200,12 +201,20 @@ static void flush_pixels(lv_display_t *display, const lv_area_t *area, uint8_t *
 
 void gc9307_spi_blank(void)
 {
-    if (set_backlight(false) < 0)
+    if (write_backlight(0) < 0)
         fail("turn off GC9307 backlight");
     backlight_on = false;
 }
 
-void gc9307_spi_init(void)
+void gc9307_spi_set_brightness(unsigned int brightness_percent)
+{
+    const unsigned int level = (brightness_percent * 255 + 50) / 100;
+    if (backlight_on && level != backlight_level && write_backlight(level) < 0)
+        fail("set GC9307 backlight brightness");
+    backlight_level = level;
+}
+
+void gc9307_spi_init(unsigned int brightness_percent)
 {
     uint8_t mode = SPI_MODE_0;
     uint8_t bits = 8;
@@ -227,6 +236,7 @@ void gc9307_spi_init(void)
         fail("configure GC9307 SPI");
 
     gc9307_spi_blank();
+    gc9307_spi_set_brightness(brightness_percent);
     configure_panel();
 
     lv_display_t *display = lv_display_create(PANEL_WIDTH, PANEL_HEIGHT);

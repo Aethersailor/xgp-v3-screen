@@ -15,6 +15,9 @@ msgstr "启用屏幕"
 msgid "Disabling the display stops the screen service and turns off the backlight."
 msgstr "关闭后将停止屏幕服务并熄灭背光。"
 
+msgid "Backlight brightness"
+msgstr "背光亮度"
+
 msgid "Display schedule"
 msgstr "亮屏方式"
 

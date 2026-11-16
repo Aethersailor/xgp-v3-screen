@@ -138,6 +138,30 @@ return view.extend({
 		enabled.rmempty = false;
 		enabled.default = '1';
 
+		const brightness = s.option(form.RangeSliderValue, 'backlight_percent', _('Backlight brightness'));
+		brightness.min = 10;
+		brightness.max = 100;
+		brightness.step = 10;
+		brightness.default = '100';
+		brightness.renderWidget = function(section, optionIndex, cfgvalue) {
+			const levels = Array.from({ length: 10 }, (_, index) => String((index + 1) * 10));
+			const value = levels.includes(String(cfgvalue)) ? cfgvalue : this.default;
+			const widget = form.RangeSliderValue.prototype.renderWidget.call(this, section, optionIndex, value);
+			const slider = widget.querySelector('input');
+			const reading = widget.querySelector('.cbi-range-slider-value');
+			const ticks = slider.id + '-ticks';
+			slider.setAttribute('list', ticks);
+			slider.setAttribute('aria-label', this.title);
+			const updateValue = () => {
+				reading.textContent = slider.value + '%';
+				slider.setAttribute('aria-valuetext', reading.textContent);
+			};
+			slider.addEventListener('input', updateValue);
+			updateValue();
+			widget.appendChild(E('datalist', { id: ticks }, levels.map(level => E('option', { value: level }))));
+			return widget;
+		};
+
 		const mode = s.option(form.ListValue, 'schedule_mode', _('Display schedule'));
 		mode.value('always', _('Always on'));
 		mode.value('fixed', _('Fixed hours'));

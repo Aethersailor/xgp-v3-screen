@@ -16,6 +16,7 @@ screen_config_t g_screen_config;
 void init_default_config(void)
 {
     g_screen_config.enabled = false;  // 默认禁用，需要用户明确启用
+    g_screen_config.backlight_percent = DEFAULT_BACKLIGHT_PERCENT;
     g_screen_config.schedule = (screen_schedule_t){
         .mode = SCREEN_SCHEDULE_ALWAYS,
         .on_minute = -1,
@@ -92,6 +93,15 @@ static int parse_max_fps(const char *value)
     if (strcmp(value, "20") == 0) return 20;
     if (strcmp(value, "25") == 0) return 25;
     return DEFAULT_MAX_FPS;
+}
+
+static unsigned int parse_backlight_percent(const char *value)
+{
+    char *end;
+    const long percent = strtol(value, &end, 10);
+    if (*end == '\0' && percent >= 10 && percent <= 100 && percent % 10 == 0)
+        return (unsigned int)percent;
+    return DEFAULT_BACKLIGHT_PERCENT;
 }
 
 static screen_schedule_mode_t parse_schedule_mode(const char *value)
@@ -221,6 +231,8 @@ int load_screen_config(void)
                     // 主屏幕配置
                     if (strcmp(key, "enabled") == 0) {
                         g_screen_config.enabled = (atoi(value) != 0);
+                    } else if (strcmp(key, "backlight_percent") == 0) {
+                        g_screen_config.backlight_percent = parse_backlight_percent(value);
                     } else if (strcmp(key, "schedule_mode") == 0) {
                         g_screen_config.schedule.mode = parse_schedule_mode(value);
                     } else if (strcmp(key, "schedule_on") == 0) {

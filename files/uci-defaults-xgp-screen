@@ -4,6 +4,7 @@
 uci -q get xgp_screen.main >/dev/null || {
     uci set xgp_screen.main=screen
     uci set xgp_screen.main.enabled='1'
+    uci set xgp_screen.main.backlight_percent='100'
     uci set xgp_screen.main.schedule_mode='always'
     uci set xgp_screen.main.max_fps='32'
     uci set xgp_screen.main.scroll_type='slide_up'

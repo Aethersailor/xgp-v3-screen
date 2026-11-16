@@ -9,6 +9,7 @@
 
 #define MAX_PAGES 10
 #define DEFAULT_MAX_FPS 32
+#define DEFAULT_BACKLIGHT_PERCENT 100
 #define CONFIG_FILE "/etc/config/xgp_screen"
 #define BRIGHTNESS_PATH "/sys/class/backlight/backlight/brightness"
 #define MAX_BRIGHTNESS_PATH "/sys/class/backlight/backlight/max_brightness"
@@ -58,6 +59,7 @@ typedef struct {
 // 屏幕配置
 typedef struct {
     bool enabled;           // 是否启用屏幕
+    unsigned int backlight_percent;
     screen_schedule_t schedule;
     int max_fps;
     scroll_type_t scroll_type;  // 滚动类型

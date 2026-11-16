@@ -814,7 +814,7 @@ int main(void)
     signal(SIGINT, request_stop);
     lv_init();
     lv_tick_set_cb(monotonic_ms);
-    gc9307_spi_init();
+    gc9307_spi_init(g_screen_config.backlight_percent);
     apply_frame_rate_limit();
 
     // 初始化UI (不使用原有的自动切换)
@@ -841,6 +841,7 @@ int main(void)
                 break;
             apply_frame_rate_limit();
             display_on = update_display_schedule(display_on);
+            gc9307_spi_set_brightness(g_screen_config.backlight_percent);
         }
 
         if (!display_on) {
