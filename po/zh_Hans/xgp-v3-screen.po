@@ -108,8 +108,8 @@ msgstr "默认停留时间（毫秒）"
 msgid "Page rotation"
 msgstr "页面轮播"
 
-msgid "Pages are displayed in ascending order. Set a page duration to 0 to use the default duration."
-msgstr "数值较小的页面先显示。停留时间填 0 时使用默认停留时间。"
+msgid "Enabled pages are shown in the order listed here. Use the drag handles or ↑ and ↓ to reorder them. A duration of 0 uses the default."
+msgstr "已启用的页面按列表顺序轮播。使用拖动手柄或 ↑、↓ 调整顺序。停留时间填 0 时使用默认值。"
 
 msgid "System information"
 msgstr "系统信息"
@@ -150,8 +150,14 @@ msgstr "监控接口的今日和累计上传、下载流量。"
 msgid "Enabled"
 msgstr "已启用"
 
-msgid "Display order"
-msgstr "显示顺序"
+msgid "Move %s up"
+msgstr "上移「%s」"
+
+msgid "Move %s down"
+msgstr "下移「%s」"
+
+msgid "Drag to reorder %s"
+msgstr "拖动「%s」调整顺序"
 
 msgid "Page duration (ms)"
 msgstr "停留时间（毫秒）"

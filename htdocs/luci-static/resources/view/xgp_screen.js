@@ -41,6 +41,7 @@ const pages = {
 		description: _("Today's and all-time upload and download totals for monitored interfaces.")
 	}
 };
+const pageIds = Object.keys(pages);
 
 function loadKnownChoice(section) {
 	const value = form.ListValue.prototype.load.call(this, section);
@@ -203,35 +204,78 @@ return view.extend({
 		o.default = '5000';
 		o.rmempty = false;
 
-		s = m.section(form.TableSection, 'page', _('Page rotation'),
-			_('Pages are displayed in ascending order. Set a page duration to 0 to use the default duration.'));
-		s.hidetitle = true;
-		s.sectiontitle = section => pages[section].title;
-		s.filter = section => Object.hasOwn(pages, section);
-		s.render = async function() {
+		const pageTable = m.section(form.TableSection, 'page', _('Page rotation'),
+			_('Enabled pages are shown in the order listed here. Use the drag handles or ↑ and ↓ to reorder them. A duration of 0 uses the default.'));
+		pageTable.hidetitle = true;
+		pageTable.sectiontitle = section => pages[section].title;
+		pageTable.filter = section => Object.hasOwn(pages, section);
+		pageTable.cfgsections = function() {
+			const sections = form.TableSection.prototype.cfgsections.call(this);
+			const order = id => parseInt(this.map.data.get('xgp_screen', id, 'order') ?? (pageIds.indexOf(id) + 1), 10) || 0;
+			return sections.sort((a, b) => order(a) - order(b) || pageIds.indexOf(a) - pageIds.indexOf(b));
+		};
+		pageTable.render = async function() {
+			this.sortable = !this.map.readonly;
 			const section = await form.TableSection.prototype.render.call(this);
-			for (const cell of section.querySelectorAll('tr[data-sid] > .cbi-section-table-titles')) {
-				const page = pages[cell.parentNode.dataset.sid];
-				cell.appendChild(E('div', {
+			const body = section.querySelector('tbody');
+			const rows = [...body.querySelectorAll('tr[data-sid]')];
+			const updateButtons = () => {
+				for (const row of rows) {
+					row.querySelector('[data-move="up"]').disabled = !row.previousElementSibling;
+					row.querySelector('[data-move="down"]').disabled = !row.nextElementSibling;
+				}
+			};
+
+			for (const row of rows) {
+				const page = pages[row.dataset.sid];
+				row.querySelector('.cbi-section-table-titles').appendChild(E('div', {
 					class: 'cbi-value-description',
 					style: 'font-weight: normal; white-space: normal'
 				}, page.description));
+				if (!this.sortable)
+					continue;
+
+				const actions = row.querySelector('.cbi-section-actions > div');
+				actions.querySelector('.drag-handle').setAttribute('aria-label', _('Drag to reorder %s').format(page.title));
+				for (const [direction, symbol, action] of [
+					['up', '↑', _('Move %s up')],
+					['down', '↓', _('Move %s down')]
+				]) {
+					const label = action.format(page.title);
+					actions.appendChild(E('button', {
+						type: 'button',
+						class: 'btn cbi-button cbi-button-neutral',
+						style: 'min-width: 2.5em',
+						'data-move': direction,
+						title: label,
+						'aria-label': label,
+						click: ev => {
+							const down = direction === 'down';
+							const sibling = down ? row.nextElementSibling : row.previousElementSibling;
+							body.insertBefore(row, down ? sibling.nextElementSibling : sibling);
+							this.map.data.move('xgp_screen', row.dataset.sid, sibling.dataset.sid, down);
+							updateButtons();
+							const target = ev.currentTarget.disabled
+								? actions.querySelector(`[data-move="${down ? 'up' : 'down'}"]`) : ev.currentTarget;
+							target.focus();
+						}
+					}, symbol));
+				}
+			}
+
+			if (this.sortable) {
+				section.querySelectorAll('th[data-sortable-row]').forEach(th => th.removeAttribute('data-sortable-row'));
+				updateButtons();
+				new MutationObserver(updateButtons).observe(body, { childList: true });
 			}
 			return section;
 		};
 
-		const pageEnabled = s.option(form.Flag, 'enabled', _('Enabled'));
+		const pageEnabled = pageTable.option(form.Flag, 'enabled', _('Enabled'));
 		pageEnabled.rmempty = false;
 		pageEnabled.default = '1';
 
-		o = s.option(form.Value, 'order', _('Display order'));
-		o.datatype = 'and(uinteger,range(0,2147483647))';
-		o.rmempty = false;
-		o.load = function(section) {
-			return form.Value.prototype.load.call(this, section) ?? String(Object.keys(pages).indexOf(section) + 1);
-		};
-
-		o = s.option(form.Value, 'delay', _('Page duration (ms)'));
+		o = pageTable.option(form.Value, 'delay', _('Page duration (ms)'));
 		o.datatype = 'and(uinteger,range(0,2147483647))';
 		o.default = '5000';
 		o.rmempty = false;
@@ -254,7 +298,7 @@ return view.extend({
 			    onTime.formvalue('main') === offTime.formvalue('main'))
 				return Promise.reject(new Error(_('Choose different on and off times.')));
 
-			if (enabled.formvalue('main') === '1' && !Object.keys(pages).some(section =>
+			if (enabled.formvalue('main') === '1' && !pageIds.some(section =>
 				pageEnabled.formvalue(section) === '1')) {
 				return Promise.reject(new Error(_('Enable at least one page before enabling the display.')));
 			}
@@ -262,7 +306,12 @@ return view.extend({
 			if (L.toArray(interfaces.formvalue('settings')).length > 16)
 				return Promise.reject(new Error(_('Add at most 16 device names or prefixes.')));
 
-			return form.Map.prototype.parse.call(this);
+			return form.Map.prototype.parse.call(this).then(() => {
+				const rows = [...this.root.querySelectorAll('#cbi-xgp_screen-page tbody > tr[data-sid]')];
+				const configured = pageTable.cfgsections();
+				if (rows.some((row, index) => row.dataset.sid !== configured[index]))
+					rows.forEach((row, index) => this.data.set('xgp_screen', row.dataset.sid, 'order', String(index + 1)));
+			});
 		};
 
 		return m.render();
