@@ -6,6 +6,7 @@
 #include "ui/ui.h"
 #include "screen_config.h"
 #include "screen_manager.h"
+#include "temperature_page.h"
 #include "gc9307_spi.h"
 #include <signal.h>
 #include <unistd.h>
@@ -546,6 +547,7 @@ void parse_modem_info()
     {
         lv_label_set_text(ui_valModemRev, buf_modem_revision);
     }
+    temperature_page_set_modem(buf_modem_temperature);
     if (ui_valModemTempature != NULL)
     {
         lv_label_set_text(ui_valModemTempature, buf_modem_temperature);
@@ -865,6 +867,8 @@ int main(void)
 
     // 清理并退出
     screen_manager_stop();
+    lv_screen_load(ui____initial_actions0);
+    temperature_page_destroy();
     ui_destroy();
 
     return 0;

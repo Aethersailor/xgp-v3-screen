@@ -36,6 +36,7 @@ typedef enum {
     PAGE_MODEM_INFO,
     PAGE_MODEM_SIGNAL,
     PAGE_TRAFFIC,
+    PAGE_TEMPERATURE,
     PAGE_COUNT
 } page_type_t;
 

@@ -2,6 +2,7 @@
 // Copyright (C) 2025 zzzz0317
 
 #include "screen_manager.h"
+#include "temperature_page.h"
 #include <stdio.h>
 
 #define SCREEN_TRANSITION_MS 300
@@ -28,6 +29,7 @@ lv_obj_t** screen_manager_get_screen(page_type_t page)
         case PAGE_MODEM_INFO: return &ui_ModemInfo;
         case PAGE_MODEM_SIGNAL: return &ui_ModemSignal;
         case PAGE_TRAFFIC: return &ui_Traffic;
+        case PAGE_TEMPERATURE: return &ui_Temperature;
         default: return NULL;
     }
 }
@@ -42,6 +44,7 @@ void (*screen_manager_get_init_func(page_type_t page))(void)
         case PAGE_MODEM_INFO: return ui_ModemInfo_screen_init;
         case PAGE_MODEM_SIGNAL: return ui_ModemSignal_screen_init;
         case PAGE_TRAFFIC: return ui_Traffic_screen_init;
+        case PAGE_TEMPERATURE: return temperature_page_init;
         default: return NULL;
     }
 }
@@ -188,6 +191,7 @@ static lv_obj_t* get_page_number_label(page_type_t page)
         case PAGE_MODEM_INFO: return ui_txtModemInfo1;
         case PAGE_MODEM_SIGNAL: return ui_txtModemSignal1;
         case PAGE_TRAFFIC: return ui_txtTraffic1;
+        case PAGE_TEMPERATURE: return ui_txtTemperatureNumber;
         default: return NULL;
     }
 }

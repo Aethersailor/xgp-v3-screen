@@ -36,11 +36,12 @@
 - ✅ 「日出开启、日落关闭」由设备根据所在地经纬度判断昼夜。
 - ✅ 计划熄屏时关闭背光，暂停画面刷新和数据采集。 [配置详情](#配置文件)
 
-### 5. 更新网络和调制解调器信息
+### 5. 更新网络、调制解调器和温度信息
 
 - ✅ 通过 netifd 获取实际拨号设备和 LAN 三层设备，显示 Modem IP 和 LAN IP，统计 LAN 的 IPv4 ARP 条目。
 - ✅ 支持按 `wwan*` 和 `rmnet_mhi*` 接口名前缀查找 Modem IP。
 - ✅ 读取 `luci-app-fm350` 提供的频段、温度和信号等信息，通过只读 AT 命令查询电压与 AMBR。QModem 可提供调制解调器信息及其支持的 CQI 指标。
+- ✅ 新增温度监控页，集中显示 CPU、GPU、Wi-Fi 网卡和 5G 模组温度，可在「页面轮播」中调整顺序和停留时间。
 
 ### 6. 构建 APK 和独立语言包
 
@@ -69,6 +70,7 @@ xgp-v3-screen/
     ├── gc9307_spi.c/h          # LVGL SPI 显示后端
     ├── screen_config.c/h       # 配置解析模块
     ├── screen_manager.c/h      # 屏幕管理器
+    ├── temperature_page.c/h    # 温度采集和显示
     └── ui/                     # LVGL UI 文件
 ```
 
@@ -98,7 +100,7 @@ make package/luci-app-xgp-v3-screen/compile -j$(nproc)
 
 主包的架构为 `aarch64_generic`。简体中文语言包的架构为 `noarch`，依赖主包。
 
-GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载主包和语言包。推送与 Makefile 版本一致的标签（例如 `v2.3-r1`）后，工作流会将两个 APK 和 `SHA256SUMS` 发布到 GitHub Release。
+GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载主包和语言包。推送与 Makefile 版本一致的标签（例如 `v2.4-r1`）后，工作流会将两个 APK 和 `SHA256SUMS` 发布到 GitHub Release。
 
 ### 4. 安装
 如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
@@ -106,13 +108,13 @@ GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 *
 ```bash
 /etc/init.d/xgp-lcd stop
 /etc/init.d/xgp-lcd disable
-apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.3-r1.apk
+apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.4-r1.apk
 ```
 
 如需简体中文 LuCI 配置页，再安装语言包，并将 LuCI 界面语言设为简体中文。
 
 ```bash
-apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.3-r1.apk
+apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.4-r1.apk
 ```
 
 回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。

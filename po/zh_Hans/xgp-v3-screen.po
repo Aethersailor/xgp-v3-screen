@@ -147,6 +147,12 @@ msgstr "流量统计"
 msgid "Today's and all-time upload and download totals for monitored interfaces."
 msgstr "监控接口的今日和累计上传、下载流量。"
 
+msgid "Temperature monitor"
+msgstr "温度监控"
+
+msgid "CPU, GPU, Wi-Fi, and 5G modem temperatures."
+msgstr "CPU、GPU、Wi-Fi 网卡和 5G 模组的温度。"
+
 msgid "Enabled"
 msgstr "已启用"
 

@@ -29,15 +29,15 @@ void init_default_config(void)
     g_screen_config.skip_boot = false;
     g_screen_config.skip_splash = false;
 
-    // 默认所有页面启用
+    // 配置中缺少温度页时，沿用已有轮播。
     for (int i = 0; i < PAGE_COUNT; i++) {
         g_screen_config.pages[i].type = (page_type_t)i;
-        g_screen_config.pages[i].enabled = true;
+        g_screen_config.pages[i].enabled = i != PAGE_TEMPERATURE;
         g_screen_config.pages[i].delay = 5000;
         g_screen_config.pages[i].order = i + 1;
         g_screen_config.page_order[i] = (page_type_t)i;
     }
-    g_screen_config.enabled_page_count = PAGE_COUNT;
+    g_screen_config.enabled_page_count = PAGE_COUNT - 1;
     
     // 初始化流量监控默认配置
     g_screen_config.traffic.interface_count = 0;
@@ -54,6 +54,7 @@ const char* page_type_to_name(page_type_t type)
         case PAGE_MODEM_INFO: return "modem_info";
         case PAGE_MODEM_SIGNAL: return "modem_signal";
         case PAGE_TRAFFIC: return "traffic";
+        case PAGE_TEMPERATURE: return "temperature";
         default: return "unknown";
     }
 }
@@ -66,6 +67,7 @@ page_type_t page_name_to_type(const char* name)
     if (strcmp(name, "modem_info") == 0) return PAGE_MODEM_INFO;
     if (strcmp(name, "modem_signal") == 0) return PAGE_MODEM_SIGNAL;
     if (strcmp(name, "traffic") == 0) return PAGE_TRAFFIC;
+    if (strcmp(name, "temperature") == 0) return PAGE_TEMPERATURE;
     return PAGE_COUNT; // 无效
 }
 
@@ -149,7 +151,11 @@ static int compare_page_order(const void* a, const void* b)
 {
     page_type_t type_a = *(page_type_t*)a;
     page_type_t type_b = *(page_type_t*)b;
-    return g_screen_config.pages[type_a].order - g_screen_config.pages[type_b].order;
+    const int order_a = g_screen_config.pages[type_a].order;
+    const int order_b = g_screen_config.pages[type_b].order;
+    if (order_a != order_b)
+        return order_a < order_b ? -1 : 1;
+    return (int)type_a - (int)type_b;
 }
 
 // 重新计算启用的页面顺序

@@ -54,6 +54,18 @@ uci -q get xgp_screen.traffic >/dev/null || {
     uci set xgp_screen.traffic.order='6'
 }
 
+uci -q get xgp_screen.temperature >/dev/null || {
+    order=$(uci -q show xgp_screen | awk -F"'" '
+        BEGIN { max = 6 }
+        /^xgp_screen\.[^.]+\.order=/ && $2 ~ /^[0-9]+$/ && $2 + 0 > max { max = $2 + 0 }
+        END { printf "%.0f", max < 2147483647 ? max + 1 : 2147483647 }
+    ')
+    uci set xgp_screen.temperature=page
+    uci set xgp_screen.temperature.enabled='1'
+    uci set xgp_screen.temperature.delay='5000'
+    uci set xgp_screen.temperature.order="$order"
+}
+
 uci -q get xgp_screen.settings >/dev/null || {
     uci set xgp_screen.settings=traffic
     uci set xgp_screen.settings.reset='0'

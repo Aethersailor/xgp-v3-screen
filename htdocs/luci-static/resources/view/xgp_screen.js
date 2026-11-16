@@ -39,6 +39,10 @@ const pages = {
 	traffic: {
 		title: _('Traffic statistics'),
 		description: _("Today's and all-time upload and download totals for monitored interfaces.")
+	},
+	temperature: {
+		title: _('Temperature monitor'),
+		description: _('CPU, GPU, Wi-Fi, and 5G modem temperatures.')
 	}
 };
 const pageIds = Object.keys(pages);
