@@ -23,6 +23,11 @@ const pages = {
 	traffic: _('Traffic statistics')
 };
 
+function loadKnownChoice(section) {
+	const value = form.ListValue.prototype.load.call(this, section);
+	return this.keylist.includes(value) ? value : this.default;
+}
+
 function confirmTrafficReset() {
 	const title = _('Reset traffic statistics');
 
@@ -58,7 +63,15 @@ return view.extend({
 		enabled.rmempty = false;
 		enabled.default = '1';
 
-		let o = s.option(form.ListValue, 'scroll_type', _('Page transition'));
+		let o = s.option(form.ListValue, 'max_fps', _('Frame rate limit'),
+			_('The actual frame rate depends on the transition effect and screen content.'));
+		for (const fps of [32, 25, 20, 15])
+			o.value(String(fps), _('%d FPS').format(fps));
+		o.default = '32';
+		o.rmempty = false;
+		o.load = loadKnownChoice;
+
+		o = s.option(form.ListValue, 'scroll_type', _('Page transition'));
 		o.value('none', _('No animation'));
 		o.value('fade', _('Fade'));
 		o.value('slide_up', _('Slide up'));
@@ -71,10 +84,7 @@ return view.extend({
 		o.value('over_right', _('Cover right'));
 		o.default = 'slide_up';
 		o.rmempty = false;
-		o.load = function(section) {
-			const value = form.ListValue.prototype.load.call(this, section);
-			return this.keylist.includes(value) ? value : this.default;
-		};
+		o.load = loadKnownChoice;
 
 		o = s.option(form.Value, 'default_delay', _('Default duration (ms)'));
 		o.datatype = 'and(uinteger,range(0,2147483647))';

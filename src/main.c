@@ -45,6 +45,15 @@ static uint32_t monotonic_ms(void)
     return (uint32_t)((uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000);
 }
 
+static void apply_frame_rate_limit(void)
+{
+    const uint32_t fps = g_screen_config.max_fps;
+    const uint32_t period_ms = (1000 + fps - 1) / fps;
+    lv_timer_set_period(lv_display_get_refr_timer(lv_display_get_default()), period_ms);
+    // Advance animations between display refreshes so the two timers don't skip a frame in phase.
+    lv_timer_set_period(lv_anim_get_timer(), period_ms / 2);
+}
+
 void format_memory_size(long bytes, char *buffer)
 {
     const double MiB = 1024 * 1024;
@@ -347,9 +356,7 @@ static int count_arp_online(const char *device)
     return count;
 }
 
-static uint32_t update_screen_data_time_counter = 0;
 static uint32_t update_modem_data_time_counter = 10;
-static uint32_t check_config_time_counter = 0;  // 配置文件检查计数器
 
 static long memory_total_bytes = 0;
 static char buf_memory_total_bytes[DEFAULT_VALUE_SIZE];
@@ -784,6 +791,7 @@ int main(void)
     lv_init();
     lv_tick_set_cb(monotonic_ms);
     gc9307_spi_init();
+    apply_frame_rate_limit();
 
     // 初始化UI (不使用原有的自动切换)
     ui_init_screens_only();
@@ -798,28 +806,31 @@ int main(void)
     // 启动屏幕管理器 (自动切换)
     screen_manager_start();
 
+    uint32_t last_config_check = monotonic_ms();
+    uint32_t last_data_update = last_config_check;
+
     while (!stop_requested)
     {
-        lv_timer_handler();
-        usleep(5000);
-        update_screen_data_time_counter++;
-        check_config_time_counter++;
+        const uint32_t wait_ms = lv_timer_handler();
+        if (wait_ms > 0)
+            usleep((wait_ms < 5 ? wait_ms : 5) * 1000);
+        const uint32_t now = monotonic_ms();
 
         // 每 10 秒检查一次配置文件是否被修改为禁用
-        if (check_config_time_counter >= 2000)  // 2000 * 5ms = 10秒
+        if (now - last_config_check >= 10000)
         {
-            check_config_time_counter = 0;
-            // 重新加载配置
+            last_config_check = now;
             load_screen_config();
             if (!g_screen_config.enabled) {
                 break;  // 退出主循环
             }
+            apply_frame_rate_limit();
             update_network_devices();
         }
 
-        if (update_screen_data_time_counter >= 200)
+        if (now - last_data_update >= 1000)
         {
-            update_screen_data_time_counter = 0;
+            last_data_update = now;
             update_modem_data_time_counter += 1;
             update_screen_data();
         }

@@ -15,6 +15,7 @@ screen_config_t g_screen_config;
 void init_default_config(void)
 {
     g_screen_config.enabled = false;  // 默认禁用，需要用户明确启用
+    g_screen_config.max_fps = DEFAULT_MAX_FPS;
     g_screen_config.scroll_type = SCROLL_TYPE_SLIDE_UP;
     g_screen_config.default_delay = 5000;
     g_screen_config.skip_boot = false;
@@ -73,6 +74,14 @@ scroll_type_t scroll_name_to_type(const char* name)
     if (strcmp(name, "over_left") == 0) return SCROLL_TYPE_OVER_LEFT;
     if (strcmp(name, "over_right") == 0) return SCROLL_TYPE_OVER_RIGHT;
     return SCROLL_TYPE_SLIDE_UP; // 默认
+}
+
+static int parse_max_fps(const char *value)
+{
+    if (strcmp(value, "15") == 0) return 15;
+    if (strcmp(value, "20") == 0) return 20;
+    if (strcmp(value, "25") == 0) return 25;
+    return DEFAULT_MAX_FPS;
 }
 
 // 去除字符串首尾空白
@@ -168,6 +177,8 @@ int load_screen_config(void)
                     // 主屏幕配置
                     if (strcmp(key, "enabled") == 0) {
                         g_screen_config.enabled = (atoi(value) != 0);
+                    } else if (strcmp(key, "max_fps") == 0) {
+                        g_screen_config.max_fps = parse_max_fps(value);
                     } else if (strcmp(key, "scroll_type") == 0) {
                         g_screen_config.scroll_type = scroll_name_to_type(value);
                     } else if (strcmp(key, "default_delay") == 0) {

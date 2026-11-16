@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #define MAX_PAGES 10
+#define DEFAULT_MAX_FPS 32
 #define CONFIG_FILE "/etc/config/xgp_screen"
 #define BRIGHTNESS_PATH "/sys/class/backlight/backlight/brightness"
 #define MAX_BRIGHTNESS_PATH "/sys/class/backlight/backlight/max_brightness"
@@ -55,6 +56,7 @@ typedef struct {
 // 屏幕配置
 typedef struct {
     bool enabled;           // 是否启用屏幕
+    int max_fps;
     scroll_type_t scroll_type;  // 滚动类型
     int default_delay;      // 默认停留时间
     bool skip_boot;         // 跳过启动画面

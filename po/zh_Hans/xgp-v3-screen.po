@@ -12,6 +12,15 @@ msgstr "启用屏幕"
 msgid "Disabling the display stops the screen service and turns off the backlight."
 msgstr "关闭后将停止屏幕服务并熄灭背光。"
 
+msgid "Frame rate limit"
+msgstr "帧率上限"
+
+msgid "The actual frame rate depends on the transition effect and screen content."
+msgstr "实际帧率取决于切页效果和屏幕内容。"
+
+msgid "%d FPS"
+msgstr "%d 帧/秒"
+
 msgid "Page transition"
 msgstr "切页动画"
 

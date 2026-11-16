@@ -92,6 +92,8 @@ apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
 
 在 LuCI 的「服务 → XGP 屏幕」中管理屏幕开关、页面轮播和流量统计。「保存」暂存配置，「保存并应用」提交配置并重载屏幕服务。单页停留时间填 `0` 时使用默认停留时间。
 
+「帧率上限」可选 15、20、25 或 32 FPS，默认 32 FPS。实际帧率取决于切页效果和屏幕内容。
+
 每页可单独设置启用状态、停留时间和顺序。通过 LuCI 停用屏幕时，屏幕服务和背光一并关闭。
 
 `skip_boot` 和 `skip_splash` 保留在 UCI 中供兼容。当前屏幕程序直接进入轮播。
@@ -101,6 +103,7 @@ apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
 ```
 config screen 'main'
     option enabled '1'
+    option max_fps '32'
     option scroll_type 'slide_up'
     option default_delay '5000'
     option skip_boot '0'
