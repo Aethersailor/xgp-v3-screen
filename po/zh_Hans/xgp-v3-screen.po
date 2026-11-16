@@ -6,6 +6,9 @@ msgstr ""
 msgid "XGP Screen"
 msgstr "XGP 屏幕"
 
+msgid "General Settings"
+msgstr "通用设置"
+
 msgid "Enable display"
 msgstr "启用屏幕"
 
@@ -72,8 +75,8 @@ msgstr "切页动画"
 msgid "No animation"
 msgstr "无动画"
 
-msgid "Fade"
-msgstr "淡入淡出"
+msgid "Fade in"
+msgstr "淡入"
 
 msgid "Slide up"
 msgstr "向上滑动"
@@ -99,7 +102,7 @@ msgstr "从右向左覆盖"
 msgid "Cover right"
 msgstr "从左向右覆盖"
 
-msgid "Default duration (ms)"
+msgid "Default page duration (ms)"
 msgstr "默认停留时间（毫秒）"
 
 msgid "Page rotation"
@@ -126,10 +129,13 @@ msgstr "调制解调器信号"
 msgid "Traffic statistics"
 msgstr "流量统计"
 
+msgid "Enabled"
+msgstr "已启用"
+
 msgid "Display order"
 msgstr "显示顺序"
 
-msgid "Duration (ms)"
+msgid "Page duration (ms)"
 msgstr "停留时间（毫秒）"
 
 msgid "Monitored devices"
@@ -143,6 +149,9 @@ msgstr "清零流量统计"
 
 msgid "Reset statistics"
 msgstr "清零"
+
+msgid "Cancel"
+msgstr "取消"
 
 msgid "Today's and all-time traffic totals will be cleared the next time the display shows the traffic statistics page."
 msgstr "屏幕下次显示流量统计页时，将清除今日及累计流量。"

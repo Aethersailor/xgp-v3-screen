@@ -167,7 +167,7 @@ return view.extend({
 
 		o = s.option(form.ListValue, 'scroll_type', _('Page transition'));
 		o.value('none', _('No animation'));
-		o.value('fade', _('Fade'));
+		o.value('fade', _('Fade in'));
 		o.value('slide_up', _('Slide up'));
 		o.value('slide_down', _('Slide down'));
 		o.value('slide_left', _('Slide left'));
@@ -180,7 +180,7 @@ return view.extend({
 		o.rmempty = false;
 		o.load = loadKnownChoice;
 
-		o = s.option(form.Value, 'default_delay', _('Default duration (ms)'));
+		o = s.option(form.Value, 'default_delay', _('Default page duration (ms)'));
 		o.datatype = 'and(uinteger,range(0,2147483647))';
 		o.default = '5000';
 		o.rmempty = false;
@@ -202,7 +202,7 @@ return view.extend({
 			return form.Value.prototype.load.call(this, section) ?? String(Object.keys(pages).indexOf(section) + 1);
 		};
 
-		o = s.option(form.Value, 'delay', _('Duration (ms)'));
+		o = s.option(form.Value, 'delay', _('Page duration (ms)'));
 		o.datatype = 'and(uinteger,range(0,2147483647))';
 		o.default = '5000';
 		o.rmempty = false;
@@ -213,7 +213,7 @@ return view.extend({
 			_('Enter a device name or prefix, such as wwan. An empty list uses eth1, wwan, wan and pppoe.'));
 		interfaces.placeholder = 'eth1';
 		interfaces.datatype = 'maxlength(31)';
-		interfaces.validate = (_, value) => !/[\s/:'"\\]/.test(value) || _('Enter a valid device name or prefix.');
+		interfaces.validate = (section, value) => !/[\s/:'"\\]/.test(value) || _('Enter a valid device name or prefix.');
 
 		o = s.option(form.Button, '_reset', _('Reset traffic statistics'));
 		o.inputtitle = _('Reset statistics');

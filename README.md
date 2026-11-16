@@ -18,7 +18,7 @@
 
 ### 使用原生 LuCI 配置和 APK 打包
 
-配置界面从上游的 Lua CBI 改为原生 LuCI JavaScript 表单，配套菜单、`rpcd` 访问权限和流量清零接口。屏幕服务、LuCI 配置页及翻译打包为 `luci-app-xgp-v3-screen`，使用 ImmortalWrt `rockchip/armv8` SDK 构建 APK。安装时由 ImmortalWrt 官方软件源提供用户态依赖。[依赖详情](#依赖)
+配置界面从上游的 Lua CBI 改为原生 LuCI JavaScript 表单，配套菜单、`rpcd` 访问权限和流量清零接口。主包 `luci-app-xgp-v3-screen` 包含屏幕服务和英文 LuCI 配置页。简体中文界面翻译由可选语言包 `luci-i18n-xgp-v3-screen-zh-cn` 提供。使用 ImmortalWrt `rockchip/armv8` SDK 构建 APK，用户态依赖由 ImmortalWrt 官方软件源提供。 [依赖详情](#依赖)
 
 ### 更新网络和调制解调器信息
 
@@ -66,6 +66,7 @@ cp -r xgp-v3-screen ~/openwrt/package/luci-app-xgp-v3-screen
 ```bash
 make menuconfig
 # 进入 Utilities，选择 luci-app-xgp-v3-screen
+# 如需简体中文，在 LuCI 中选择 luci-i18n-xgp-v3-screen-zh-cn
 ```
 
 ### 3. 编译
@@ -73,9 +74,9 @@ make menuconfig
 make package/luci-app-xgp-v3-screen/compile -j$(nproc)
 ```
 
-编译生成 `aarch64_generic` 架构的 `luci-app-xgp-v3-screen`，同一个包包含屏幕服务和 LuCI 界面。
+主包的架构为 `aarch64_generic`。简体中文语言包的架构为 `noarch`，依赖主包。
 
-GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载构建产物。推送与 Makefile 版本一致的标签（例如 `v2.2-r8`）后，工作流会构建 APK，并将 APK 和 `SHA256SUMS` 发布到 GitHub Release。
+GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载主包和语言包。推送与 Makefile 版本一致的标签（例如 `v2.3-r1`）后，工作流会将两个 APK 和 `SHA256SUMS` 发布到 GitHub Release。
 
 ### 4. 安装
 如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
@@ -83,7 +84,13 @@ GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 *
 ```bash
 /etc/init.d/xgp-lcd stop
 /etc/init.d/xgp-lcd disable
-apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
+apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.3-r1.apk
+```
+
+如需简体中文 LuCI 配置页，再安装语言包，并将 LuCI 界面语言设为简体中文。
+
+```bash
+apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.3-r1.apk
 ```
 
 回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。

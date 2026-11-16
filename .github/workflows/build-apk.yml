@@ -16,6 +16,7 @@ jobs:
     env:
       SDK_URL: https://downloads.immortalwrt.org/snapshots/targets/rockchip/armv8
       PACKAGE: luci-app-xgp-v3-screen
+      LANGUAGE_PACKAGE: luci-i18n-xgp-v3-screen-zh-cn
       ARCH: aarch64_generic
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,10 +63,11 @@ jobs:
             exit 1
           fi
 
-          printf 'CONFIG_PACKAGE_%s=m\n' "$PACKAGE" > .config
+          printf 'CONFIG_PACKAGE_%s=m\n' "$PACKAGE" "$LANGUAGE_PACKAGE" > .config
           make defconfig
           grep -Fxq 'CONFIG_USE_APK=y' .config
           grep -Fxq "CONFIG_PACKAGE_$PACKAGE=m" .config
+          grep -Fxq "CONFIG_PACKAGE_$LANGUAGE_PACKAGE=m" .config
 
           make package/feeds/luci/luci-base/host/compile package/toolchain/compile \
             -j"$(nproc)" V=s > prerequisites.log 2>&1 || {
@@ -80,17 +82,22 @@ jobs:
             exit 1
           }
 
-          name="$PACKAGE-$version-r$revision.apk"
-          apk="bin/packages/$ARCH/base/$name"
-          mkdir -p "$RUNNER_TEMP/apk"
-          cp "$apk" "$RUNNER_TEMP/apk/"
-          mkdir "$RUNNER_TEMP/apk-keys"
+          mkdir -p "$RUNNER_TEMP/apk" "$RUNNER_TEMP/apk-keys"
           cp public-key.pem "$RUNNER_TEMP/apk-keys/"
-          staging_dir/host/bin/apk --keys-dir "$RUNNER_TEMP/apk-keys" verify "$apk"
-          staging_dir/host/bin/apk adbdump --format json "$apk" |
-            jq -e --arg package "$PACKAGE" --arg arch "$ARCH" --arg version "$version-r$revision" \
-              '.info | .name == $package and .arch == $arch and .version == $version'
-          (cd "$RUNNER_TEMP/apk" && sha256sum "$name" > SHA256SUMS)
+          for package in "$PACKAGE" "$LANGUAGE_PACKAGE"; do
+            name="$package-$version-r$revision.apk"
+            apk="bin/packages/$ARCH/base/$name"
+            package_arch="$ARCH"
+            if [[ "$package" == "$LANGUAGE_PACKAGE" ]]; then
+              package_arch=noarch
+            fi
+            staging_dir/host/bin/apk --keys-dir "$RUNNER_TEMP/apk-keys" verify "$apk"
+            staging_dir/host/bin/apk adbdump --format json "$apk" |
+              jq -e --arg package "$package" --arg arch "$package_arch" --arg version "$version-r$revision" \
+                '.info | .name == $package and .arch == $arch and .version == $version'
+            cp "$apk" "$RUNNER_TEMP/apk/"
+          done
+          (cd "$RUNNER_TEMP/apk" && sha256sum -- *.apk > SHA256SUMS)
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

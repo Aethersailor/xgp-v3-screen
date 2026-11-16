@@ -1,10 +1,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-xgp-v3-screen
-PKG_VERSION:=2.2
-PKG_RELEASE:=9
+PKG_VERSION:=2.3
+PKG_RELEASE:=1
 PKG_BUILD_DEPENDS:=luci-base/host
 PKG_LICENSE:=GPL-3.0-only
+PKG_ZH_CN:=luci-i18n-xgp-v3-screen-zh-cn
 
 LVGL_COMMIT:=6ec2c47ceed51dd8872a48dd935aecc70fa01ffe
 LVGL_ARCHIVE:=lvgl-$(LVGL_COMMIT).tar.gz
@@ -38,6 +39,14 @@ define Package/$(PKG_NAME)/conffiles
 /etc/config/xgp_screen
 endef
 
+define Package/$(PKG_ZH_CN)
+	SECTION:=luci
+	CATEGORY:=LuCI
+	TITLE:=XGP Screen - Simplified Chinese translation
+	DEPENDS:=$(PKG_NAME)
+	PKGARCH:=all
+endef
+
 define Build/Prepare
 	$(call Build/Prepare/Default)
 	mkdir -p $(PKG_BUILD_DIR)
@@ -63,8 +72,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/xgp-v3-screen.json $(1)/usr/share/luci/menu.d/
 	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/xgp-v3-screen.json $(1)/usr/share/rpcd/acl.d/
 	$(INSTALL_DATA) ./root/usr/share/rpcd/ucode/xgp_screen.uc $(1)/usr/share/rpcd/ucode/
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	$(STAGING_DIR_HOSTPKG)/bin/po2lmo ./po/zh_Hans/xgp-v3-screen.po $(1)/usr/lib/lua/luci/i18n/xgp-v3-screen.zh-cn.lmo
 	# UCI defaults
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/uci-defaults-xgp-screen $(1)/etc/uci-defaults/99-xgp-screen
@@ -75,4 +82,12 @@ define Package/$(PKG_NAME)/postinst
 [ -n "$${IPKG_INSTROOT}" ] || /etc/init.d/rpcd reload
 endef
 
+define Package/$(PKG_ZH_CN)/install
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n $(1)/etc/uci-defaults
+	$(STAGING_DIR_HOSTPKG)/bin/po2lmo ./po/zh_Hans/xgp-v3-screen.po $(1)/usr/lib/lua/luci/i18n/xgp-v3-screen.zh-cn.lmo
+	printf '%s\n' "uci set luci.languages.zh_cn='简体中文 (Simplified Chinese)'" 'uci commit luci' \
+		> $(1)/etc/uci-defaults/$(PKG_ZH_CN)
+endef
+
 $(eval $(call BuildPackage,$(PKG_NAME)))
+$(eval $(call BuildPackage,$(PKG_ZH_CN)))
