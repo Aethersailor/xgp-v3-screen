@@ -114,20 +114,38 @@ msgstr "数值较小的页面先显示。停留时间填 0 时使用默认停留
 msgid "System information"
 msgstr "系统信息"
 
+msgid "Hostname, system name, system version, and kernel version."
+msgstr "主机名、系统名称、系统版本和内核版本。"
+
 msgid "System status"
 msgstr "系统状态"
+
+msgid "Load averages, memory usage, uptime, and local time."
+msgstr "平均负载、内存占用、运行时间和本地时间。"
 
 msgid "Network information"
 msgstr "网络信息"
 
+msgid "Modem, WAN, and LAN IP addresses, active connections, and online LAN device count."
+msgstr "Modem、WAN 和 LAN 的 IP 地址，以及活动连接数和 LAN 在线设备数。"
+
 msgid "Modem information"
 msgstr "调制解调器信息"
+
+msgid "Modem firmware version, temperature, voltage, carrier, network type, band or CQI, and AMBR."
+msgstr "固件版本、温度、电压、运营商、网络类型、频段或 CQI，以及 AMBR。"
 
 msgid "Modem signal"
 msgstr "调制解调器信号"
 
+msgid "Values and signal bars for metrics such as RSRP, RSRQ, and SINR."
+msgstr "RSRP、RSRQ 和 SINR 等信号指标的数值与信号条。"
+
 msgid "Traffic statistics"
 msgstr "流量统计"
+
+msgid "Today's and all-time upload and download totals for monitored interfaces."
+msgstr "监控接口的今日和累计上传、下载流量。"
 
 msgid "Enabled"
 msgstr "已启用"

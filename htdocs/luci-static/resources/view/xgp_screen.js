@@ -16,12 +16,30 @@ const resetTraffic = rpc.declare({
 });
 
 const pages = {
-	system_info: _('System information'),
-	system_status: _('System status'),
-	network_info: _('Network information'),
-	modem_info: _('Modem information'),
-	modem_signal: _('Modem signal'),
-	traffic: _('Traffic statistics')
+	system_info: {
+		title: _('System information'),
+		description: _('Hostname, system name, system version, and kernel version.')
+	},
+	system_status: {
+		title: _('System status'),
+		description: _('Load averages, memory usage, uptime, and local time.')
+	},
+	network_info: {
+		title: _('Network information'),
+		description: _('Modem, WAN, and LAN IP addresses, active connections, and online LAN device count.')
+	},
+	modem_info: {
+		title: _('Modem information'),
+		description: _('Modem firmware version, temperature, voltage, carrier, network type, band or CQI, and AMBR.')
+	},
+	modem_signal: {
+		title: _('Modem signal'),
+		description: _('Values and signal bars for metrics such as RSRP, RSRQ, and SINR.')
+	},
+	traffic: {
+		title: _('Traffic statistics'),
+		description: _("Today's and all-time upload and download totals for monitored interfaces.")
+	}
 };
 
 function loadKnownChoice(section) {
@@ -188,8 +206,19 @@ return view.extend({
 		s = m.section(form.TableSection, 'page', _('Page rotation'),
 			_('Pages are displayed in ascending order. Set a page duration to 0 to use the default duration.'));
 		s.hidetitle = true;
-		s.sectiontitle = section => pages[section];
+		s.sectiontitle = section => pages[section].title;
 		s.filter = section => Object.hasOwn(pages, section);
+		s.render = async function() {
+			const section = await form.TableSection.prototype.render.call(this);
+			for (const cell of section.querySelectorAll('tr[data-sid] > .cbi-section-table-titles')) {
+				const page = pages[cell.parentNode.dataset.sid];
+				cell.appendChild(E('div', {
+					class: 'cbi-value-description',
+					style: 'font-weight: normal; white-space: normal'
+				}, page.description));
+			}
+			return section;
+		};
 
 		const pageEnabled = s.option(form.Flag, 'enabled', _('Enabled'));
 		pageEnabled.rmempty = false;
