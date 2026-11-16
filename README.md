@@ -14,11 +14,21 @@
 
 上游通过 framebuffer 访问 GC9307，依赖 `kmod-fb-tft-gc9307` 和 `kmod-fb-tft`。本项目将 LVGL 显示后端移植到 ImmortalWrt 用户态，使用官方固件提供的 `spidev`、GPIO 字符设备和 LED 背光接口。
 
-屏幕服务启动时，根据板型和设备树识别 GC9307，将 `spi3.0` 绑定到 `spidev`。程序经 `/dev/spidev3.0` 写入屏幕命令和 RGB565 像素，通过 GPIO 控制命令与数据切换及复位，通过 LED 接口控制背光。当前 SPI 速率为 50 MHz，切页转场时长为 300 ms。
+屏幕服务启动时，根据板型和设备树识别 GC9307，将 `spi3.0` 绑定到 `spidev`。程序经 `/dev/spidev3.0` 写入屏幕命令和 RGB565 像素，通过 GPIO 控制命令与数据切换及复位，通过 LED 接口控制背光。SPI 传输速率上限设为 50 MHz。
+
+### 配置帧率、轮播和亮屏时间
+
+- **帧率上限**可选 15、20、25 或 32 FPS，默认 32 FPS。实际帧率随切页效果和画面内容变化。
+- **页面轮播**支持分别设置页面是否启用、显示顺序和停留时间。切页可选淡入、滑动、覆盖或直接切换，转场动画时长为 300 ms。
+- **亮屏方式**可选「始终开启」「固定时段」和「日出开启、日落关闭」。固定时段按路由器本地时间执行，支持跨午夜。日出日落在设备上根据经纬度计算。
+
+计划熄屏期间关闭背光，暂停画面刷新和数据采集。 [配置详情](#配置文件)
 
 ### 使用原生 LuCI 配置和 APK 打包
 
-配置界面从上游的 Lua CBI 改为原生 LuCI JavaScript 表单，配套菜单、`rpcd` 访问权限和流量清零接口。主包 `luci-app-xgp-v3-screen` 包含屏幕服务和英文 LuCI 配置页。简体中文界面翻译由可选语言包 `luci-i18n-xgp-v3-screen-zh-cn` 提供。使用 ImmortalWrt `rockchip/armv8` SDK 构建 APK，用户态依赖由 ImmortalWrt 官方软件源提供。 [依赖详情](#依赖)
+配置界面从上游的 Lua CBI 改为原生 LuCI JavaScript 表单，配套菜单、`rpcd` 访问权限和流量清零接口。屏幕服务由 procd 管理，应用 UCI 设置时自动重载。
+
+APK 使用 ImmortalWrt `rockchip/armv8` SDK 构建。主包 `luci-app-xgp-v3-screen` 包含屏幕服务和英文 LuCI 配置页，简体中文翻译由可选语言包 `luci-i18n-xgp-v3-screen-zh-cn` 提供。用户态依赖由 ImmortalWrt 官方软件源提供。 [依赖详情](#依赖)
 
 ### 更新网络和调制解调器信息
 
