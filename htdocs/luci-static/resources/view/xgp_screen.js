@@ -3,6 +3,7 @@
 
 'use strict';
 'require view';
+'require dom';
 'require form';
 'require rpc';
 'require ui';
@@ -27,6 +28,57 @@ function loadKnownChoice(section) {
 	const value = form.ListValue.prototype.load.call(this, section);
 	return this.keylist.includes(value) ? value : this.default;
 }
+
+const TimePicker = ui.AbstractElement.extend({
+	__init__(value, options) {
+		this.value = value;
+		this.options = options;
+	},
+
+	render() {
+		const [hour, minute] = this.value.split(':');
+		const select = (count, value, label, id) => {
+			// Keep both controls native so theme dropdowns cannot widen the pair.
+			const node = E('select', {
+				id,
+				style: 'width: 5em; min-width: 0',
+				'aria-label': label,
+				disabled: this.options.disabled ? true : null
+			}, Array.from({ length: count }, (_, index) => {
+				const number = String(index).padStart(2, '0');
+				return E('option', { value: number }, number);
+			}));
+			node.value = value;
+			return node;
+		};
+
+		this.hour = select(24, hour, _('%s (hour)').format(this.options.title), this.options.id);
+		this.minute = select(60, minute, _('%s (minute)').format(this.options.title));
+		this.node = this.hour;
+		dom.bindClassInstance(this.hour, this);
+		this.setChangeEvents(this.hour, 'change');
+		this.setChangeEvents(this.minute, 'change');
+
+		return E('span', { style: 'display: inline-flex; align-items: center; gap: .5em' }, [
+			this.hour, E('span', { 'aria-hidden': 'true' }, ':'), this.minute
+		]);
+	},
+
+	getValue() {
+		return `${this.hour.value}:${this.minute.value}`;
+	}
+});
+
+const TimeValue = form.Value.extend({
+	renderWidget(section, optionIndex, cfgvalue) {
+		const value = /^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(cfgvalue) ? cfgvalue : this.default;
+		return new TimePicker(value, {
+			id: this.cbid(section),
+			title: this.title,
+			disabled: this.readonly ?? this.map.readonly
+		}).render();
+	}
+});
 
 function confirmTrafficReset() {
 	const title = _('Reset traffic statistics');
@@ -62,6 +114,48 @@ return view.extend({
 			_('Disabling the display stops the screen service and turns off the backlight.'));
 		enabled.rmempty = false;
 		enabled.default = '1';
+
+		const mode = s.option(form.ListValue, 'schedule_mode', _('Display schedule'));
+		mode.value('always', _('Always on'));
+		mode.value('fixed', _('Fixed hours'));
+		mode.value('sun', _('On at sunrise, off at sunset'));
+		mode.default = 'always';
+		mode.rmempty = false;
+		mode.retain = true;
+		mode.depends('enabled', '1');
+		mode.load = loadKnownChoice;
+
+		const onTime = s.option(TimeValue, 'schedule_on', _('On time'));
+		const offTime = s.option(TimeValue, 'schedule_off', _('Off time'),
+			_('Uses the router’s local time. An earlier off time means the next day.'));
+		onTime.default = '08:00';
+		offTime.default = '22:00';
+		for (const time of [onTime, offTime]) {
+			time.rmempty = false;
+			time.retain = true;
+			time.depends({ enabled: '1', schedule_mode: 'fixed' });
+		}
+
+		for (const [name, title, limit] of [
+			['latitude', _('Latitude'), 90],
+			['longitude', _('Longitude'), 180]
+		]) {
+			const coordinate = s.option(form.Value, name, title);
+			coordinate.rmempty = false;
+			coordinate.retain = true;
+			coordinate.depends({ enabled: '1', schedule_mode: 'sun' });
+			coordinate.validate = (section, value) => {
+				const input = value.trim();
+				const degrees = Number(input);
+				return /^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(input)
+					&& degrees >= -limit && degrees <= limit
+					|| _('Enter decimal degrees from %d to %d.').format(-limit, limit);
+			};
+			if (name === 'longitude')
+				coordinate.description = '%s <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer">%s</a>'
+					.format(_('Copy the Latitude and Longitude values for the router’s location.'),
+						_('Look up coordinates on LatLong.net'));
+		}
 
 		let o = s.option(form.ListValue, 'max_fps', _('Frame rate limit'),
 			_('The actual frame rate depends on the transition effect and screen content.'));
@@ -127,6 +221,10 @@ return view.extend({
 		o.onclick = confirmTrafficReset;
 
 		m.parse = function() {
+			if (enabled.formvalue('main') === '1' && mode.formvalue('main') === 'fixed' &&
+			    onTime.formvalue('main') === offTime.formvalue('main'))
+				return Promise.reject(new Error(_('Choose different on and off times.')));
+
 			if (enabled.formvalue('main') === '1' && !Object.keys(pages).some(section =>
 				pageEnabled.formvalue(section) === '1')) {
 				return Promise.reject(new Error(_('Enable at least one page before enabling the display.')));

@@ -5,6 +5,7 @@
 #define SCREEN_CONFIG_H
 
 #include <stdbool.h>
+#include "screen_schedule.h"
 
 #define MAX_PAGES 10
 #define DEFAULT_MAX_FPS 32
@@ -56,6 +57,7 @@ typedef struct {
 // 屏幕配置
 typedef struct {
     bool enabled;           // 是否启用屏幕
+    screen_schedule_t schedule;
     int max_fps;
     scroll_type_t scroll_type;  // 滚动类型
     int default_delay;      // 默认停留时间

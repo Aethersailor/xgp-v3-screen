@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include <unistd.h>
 
 // 全局配置实例
@@ -15,6 +16,13 @@ screen_config_t g_screen_config;
 void init_default_config(void)
 {
     g_screen_config.enabled = false;  // 默认禁用，需要用户明确启用
+    g_screen_config.schedule = (screen_schedule_t){
+        .mode = SCREEN_SCHEDULE_ALWAYS,
+        .on_minute = -1,
+        .off_minute = -1,
+        .latitude = NAN,
+        .longitude = NAN
+    };
     g_screen_config.max_fps = DEFAULT_MAX_FPS;
     g_screen_config.scroll_type = SCROLL_TYPE_SLIDE_UP;
     g_screen_config.default_delay = 5000;
@@ -84,6 +92,25 @@ static int parse_max_fps(const char *value)
     return DEFAULT_MAX_FPS;
 }
 
+static screen_schedule_mode_t parse_schedule_mode(const char *value)
+{
+    if (strcmp(value, "fixed") == 0) return SCREEN_SCHEDULE_FIXED;
+    if (strcmp(value, "sun") == 0) return SCREEN_SCHEDULE_SUN;
+    return SCREEN_SCHEDULE_ALWAYS;
+}
+
+static int parse_clock_time(const char *value)
+{
+    const char *digits = "0123456789";
+    if (strlen(value) != 5 || value[2] != ':' ||
+        strspn(value, digits) != 2 || strspn(value + 3, digits) != 2)
+        return -1;
+
+    const int hour = (value[0] - '0') * 10 + (value[1] - '0');
+    const int minute = (value[3] - '0') * 10 + (value[4] - '0');
+    return hour < 24 && minute < 60 ? hour * 60 + minute : -1;
+}
+
 // 去除字符串首尾空白
 static char* trim(char* str)
 {
@@ -94,6 +121,17 @@ static char* trim(char* str)
     while (end > str && isspace((unsigned char)*end)) end--;
     end[1] = '\0';
     return str;
+}
+
+static double parse_coordinate(char *value, double limit)
+{
+    value = trim(value);
+    if (value[strspn(value, "+-0123456789.")] != '\0')
+        return NAN;
+
+    char *end;
+    const double degrees = strtod(value, &end);
+    return end != value && *end == '\0' && degrees >= -limit && degrees <= limit ? degrees : NAN;
 }
 
 // 去除引号
@@ -177,6 +215,16 @@ int load_screen_config(void)
                     // 主屏幕配置
                     if (strcmp(key, "enabled") == 0) {
                         g_screen_config.enabled = (atoi(value) != 0);
+                    } else if (strcmp(key, "schedule_mode") == 0) {
+                        g_screen_config.schedule.mode = parse_schedule_mode(value);
+                    } else if (strcmp(key, "schedule_on") == 0) {
+                        g_screen_config.schedule.on_minute = parse_clock_time(value);
+                    } else if (strcmp(key, "schedule_off") == 0) {
+                        g_screen_config.schedule.off_minute = parse_clock_time(value);
+                    } else if (strcmp(key, "latitude") == 0) {
+                        g_screen_config.schedule.latitude = parse_coordinate(value, 90.0);
+                    } else if (strcmp(key, "longitude") == 0) {
+                        g_screen_config.schedule.longitude = parse_coordinate(value, 180.0);
                     } else if (strcmp(key, "max_fps") == 0) {
                         g_screen_config.max_fps = parse_max_fps(value);
                     } else if (strcmp(key, "scroll_type") == 0) {
@@ -226,6 +274,13 @@ int load_screen_config(void)
     }
     
     fclose(fp);
+
+    screen_schedule_t *schedule = &g_screen_config.schedule;
+    if ((schedule->mode == SCREEN_SCHEDULE_FIXED &&
+         (schedule->on_minute < 0 || schedule->off_minute < 0 || schedule->on_minute == schedule->off_minute)) ||
+        (schedule->mode == SCREEN_SCHEDULE_SUN &&
+         (isnan(schedule->latitude) || isnan(schedule->longitude))))
+        schedule->mode = SCREEN_SCHEDULE_INVALID;
     
     // 如果没有配置接口，使用默认值
     if (g_screen_config.traffic.interface_count == 0) {

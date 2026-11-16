@@ -198,6 +198,13 @@ static void flush_pixels(lv_display_t *display, const lv_area_t *area, uint8_t *
     lv_display_flush_ready(display);
 }
 
+void gc9307_spi_blank(void)
+{
+    if (set_backlight(false) < 0)
+        fail("turn off GC9307 backlight");
+    backlight_on = false;
+}
+
 void gc9307_spi_init(void)
 {
     uint8_t mode = SPI_MODE_0;
@@ -219,8 +226,7 @@ void gc9307_spi_init(void)
         ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0)
         fail("configure GC9307 SPI");
 
-    if (set_backlight(false) < 0)
-        fail("turn off GC9307 backlight");
+    gc9307_spi_blank();
     configure_panel();
 
     lv_display_t *display = lv_display_create(PANEL_WIDTH, PANEL_HEIGHT);

@@ -96,6 +96,14 @@ apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
 
 每页可单独设置启用状态、停留时间和顺序。通过 LuCI 停用屏幕时，屏幕服务和背光一并关闭。
 
+### 亮屏方式
+
+- **始终开启**是默认模式。开启屏幕后持续亮屏。
+- **固定时段**按路由器的本地时间每天亮屏。开启时间和关闭时间采用 24 小时制。关闭时间早于开启时间时，将于次日关闭。
+- **日出开启、日落关闭**由设备根据所在地经纬度计算。填写带正负号的十进制度数。 [在 LatLong.net 查询经纬度](https://www.latlong.net/)
+
+开机或应用设置时，屏幕服务按当前时间判断是否亮屏。计划熄屏期间暂停刷新和屏幕数据采集。
+
 `skip_boot` 和 `skip_splash` 保留在 UCI 中供兼容。当前屏幕程序直接进入轮播。
 
 配置文件位置: `/etc/config/xgp_screen`
@@ -103,6 +111,7 @@ apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.2-r8.apk
 ```
 config screen 'main'
     option enabled '1'
+    option schedule_mode 'always'
     option max_fps '32'
     option scroll_type 'slide_up'
     option default_delay '5000'

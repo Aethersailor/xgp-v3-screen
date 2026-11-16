@@ -12,6 +12,51 @@ msgstr "启用屏幕"
 msgid "Disabling the display stops the screen service and turns off the backlight."
 msgstr "关闭后将停止屏幕服务并熄灭背光。"
 
+msgid "Display schedule"
+msgstr "亮屏方式"
+
+msgid "Always on"
+msgstr "始终开启"
+
+msgid "Fixed hours"
+msgstr "固定时段"
+
+msgid "On at sunrise, off at sunset"
+msgstr "日出开启、日落关闭"
+
+msgid "On time"
+msgstr "开启时间"
+
+msgid "Off time"
+msgstr "关闭时间"
+
+msgid "%s (hour)"
+msgstr "%s（小时）"
+
+msgid "%s (minute)"
+msgstr "%s（分钟）"
+
+msgid "Uses the router’s local time. An earlier off time means the next day."
+msgstr "按照路由器的本地时间执行。关闭时间早于开启时间时，将于次日关闭。"
+
+msgid "Choose different on and off times."
+msgstr "请为开启和关闭选择不同的时间。"
+
+msgid "Latitude"
+msgstr "纬度"
+
+msgid "Longitude"
+msgstr "经度"
+
+msgid "Enter decimal degrees from %d to %d."
+msgstr "请输入 %d 至 %d 之间的十进制度数。"
+
+msgid "Copy the Latitude and Longitude values for the router’s location."
+msgstr "查询路由器所在地，将 Latitude 填入纬度、Longitude 填入经度。"
+
+msgid "Look up coordinates on LatLong.net"
+msgstr "在 LatLong.net 查询经纬度"
+
 msgid "Frame rate limit"
 msgstr "帧率上限"
 

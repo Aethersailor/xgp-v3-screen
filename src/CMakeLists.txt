@@ -16,6 +16,7 @@ add_executable(zz_xgp_screen
     gc9307_spi.c
     screen_config.c 
     screen_manager.c 
+    screen_schedule.c
     ${UI_SOURCES}
 )
 target_link_libraries(zz_xgp_screen lvgl lvgl::examples lvgl::demos lvgl::thorvg m pthread)

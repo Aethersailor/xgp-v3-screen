@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-xgp-v3-screen
 PKG_VERSION:=2.2
-PKG_RELEASE:=8
+PKG_RELEASE:=9
 PKG_BUILD_DEPENDS:=luci-base/host
 PKG_LICENSE:=GPL-3.0-only
 

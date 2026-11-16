@@ -771,6 +771,26 @@ static void update_screen_data(void)
     }
 }
 
+static bool update_display_schedule(bool was_on)
+{
+    const bool display_on = screen_schedule_is_on(&g_screen_config.schedule, time(NULL));
+    if (!display_on) {
+        if (was_on) {
+            gc9307_spi_blank();
+            screen_manager_stop();
+        }
+        return false;
+    }
+
+    update_network_devices();
+    if (!was_on) {
+        screen_manager_start();
+        update_screen_data();
+        lv_obj_invalidate(lv_screen_active());
+    }
+    return true;
+}
+
 int main(void)
 {
     // 加载配置
@@ -785,6 +805,8 @@ int main(void)
         fprintf(stderr, "ERROR: Screen is enabled but NO pages are enabled!\n");
         return 1;
     }
+    if (g_screen_config.schedule.mode == SCREEN_SCHEDULE_INVALID)
+        fputs("Invalid display schedule; keeping the display off\n", stderr);
 
     signal(SIGTERM, request_stop);
     signal(SIGINT, request_stop);
@@ -799,34 +821,34 @@ int main(void)
     // 初始化屏幕管理器
     screen_manager_init();
 
-    /*Handle LVGL tasks*/
     update_static_value();
-    update_network_devices();
-
-    // 启动屏幕管理器 (自动切换)
-    screen_manager_start();
+    bool display_on = update_display_schedule(false);
 
     uint32_t last_config_check = monotonic_ms();
     uint32_t last_data_update = last_config_check;
 
     while (!stop_requested)
     {
-        const uint32_t wait_ms = lv_timer_handler();
-        if (wait_ms > 0)
-            usleep((wait_ms < 5 ? wait_ms : 5) * 1000);
         const uint32_t now = monotonic_ms();
 
-        // 每 10 秒检查一次配置文件是否被修改为禁用
         if (now - last_config_check >= 10000)
         {
             last_config_check = now;
             load_screen_config();
-            if (!g_screen_config.enabled) {
-                break;  // 退出主循环
-            }
+            if (!g_screen_config.enabled || g_screen_config.enabled_page_count == 0)
+                break;
             apply_frame_rate_limit();
-            update_network_devices();
+            display_on = update_display_schedule(display_on);
         }
+
+        if (!display_on) {
+            sleep(1);
+            continue;
+        }
+
+        const uint32_t wait_ms = lv_timer_handler();
+        if (wait_ms > 0)
+            usleep((wait_ms < 5 ? wait_ms : 5) * 1000);
 
         if (now - last_data_update >= 1000)
         {
