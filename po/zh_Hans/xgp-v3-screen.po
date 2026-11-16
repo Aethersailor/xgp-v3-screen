@@ -12,8 +12,8 @@ msgstr "通用设置"
 msgid "Enable display"
 msgstr "启用屏幕"
 
-msgid "Disabling the display stops the screen service and turns off the backlight."
-msgstr "关闭后将停止屏幕服务并熄灭背光。"
+msgid "Turning off the display stops the screen service. You can still edit settings for the next time the display is enabled."
+msgstr "关闭后屏幕停止运行，仍可修改设置。重新启用后按已保存的设置运行。"
 
 msgid "Backlight brightness"
 msgstr "背光亮度"

@@ -31,6 +31,7 @@
 
 ### 4. 按时段控制亮屏
 
+- ✅ 背光亮度从 10% 到 100%，每 10% 一档，默认 100%。
 - ✅ 「始终开启」为默认亮屏方式。
 - ✅ 「固定时段」按路由器本地时间每天执行，支持跨午夜。
 - ✅ 「日出开启、日落关闭」由设备根据所在地经纬度判断昼夜。
@@ -100,7 +101,7 @@ make package/luci-app-xgp-v3-screen/compile -j$(nproc)
 
 主包的架构为 `aarch64_generic`。简体中文语言包的架构为 `noarch`，依赖主包。
 
-GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载主包和语言包。推送与 Makefile 版本一致的标签（例如 `v2.4-r1`）后，工作流会将两个 APK 和 `SHA256SUMS` 发布到 GitHub Release。
+GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 **Build APK** 可下载主包和语言包。推送与 Makefile 版本一致的标签（例如 `v2.5-r1`）后，工作流会将两个 APK 和 `SHA256SUMS` 发布到 GitHub Release。
 
 ### 4. 安装
 如果设备正在运行此前部署的 Lua 服务 `xgp-lcd`，先记录它的启用状态，然后停止并禁用它。确认旧进程已退出后再安装本包，安装时系统会尝试启动新服务。
@@ -108,13 +109,13 @@ GitHub Actions 使用 ImmortalWrt `rockchip/armv8` Snapshot SDK。手动运行 *
 ```bash
 /etc/init.d/xgp-lcd stop
 /etc/init.d/xgp-lcd disable
-apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.4-r1.apk
+apk add --allow-untrusted ./luci-app-xgp-v3-screen-2.5-r1.apk
 ```
 
 如需简体中文 LuCI 配置页，再安装语言包，并将 LuCI 界面语言设为简体中文。
 
 ```bash
-apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.4-r1.apk
+apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.5-r1.apk
 ```
 
 回退时，停止并禁用 `zz_xgp_screen`，确认其进程已退出，再按原启用状态启动 `xgp-lcd`。两个服务共用 `spidev` 绑定。
@@ -125,13 +126,15 @@ apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.4-r1.apk
 
 「帧率上限」可选 15、20、25 或 32 FPS，默认 32 FPS。实际帧率取决于切页效果和屏幕内容。
 
-每页可单独设置启用状态、停留时间和顺序。通过 LuCI 停用屏幕时，屏幕服务和背光一并关闭。
+每页可单独设置启用状态、停留时间和顺序。通过 LuCI 停用屏幕时，屏幕服务和背光一并关闭，设置仍可编辑。重新启用后按已保存的设置运行。
 
 ### 亮屏方式
 
 - **始终开启**是默认模式。开启屏幕后持续亮屏。
 - **固定时段**按路由器的本地时间每天亮屏。开启时间和关闭时间采用 24 小时制。关闭时间早于开启时间时，将于次日关闭。
 - **日出开启、日落关闭**由设备根据所在地经纬度计算。填写带正负号的十进制度数。 [在 LatLong.net 查询经纬度](https://www.latlong.net/)
+
+切换亮屏方式时，已保存的时段和经纬度会保留。
 
 开机或应用设置时，屏幕服务按当前时间判断是否亮屏。计划熄屏期间暂停刷新和屏幕数据采集。
 
@@ -142,6 +145,7 @@ apk add --allow-untrusted ./luci-i18n-xgp-v3-screen-zh-cn-2.4-r1.apk
 ```
 config screen 'main'
     option enabled '1'
+    option backlight_percent '100'
     option schedule_mode 'always'
     option max_fps '32'
     option scroll_type 'slide_up'

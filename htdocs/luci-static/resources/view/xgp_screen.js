@@ -134,7 +134,7 @@ return view.extend({
 		s.hidetitle = true;
 
 		const enabled = s.option(form.Flag, 'enabled', _('Enable display'),
-			_('Disabling the display stops the screen service and turns off the backlight.'));
+			_('Turning off the display stops the screen service. You can still edit settings for the next time the display is enabled.'));
 		enabled.rmempty = false;
 		enabled.default = '1';
 
@@ -168,8 +168,6 @@ return view.extend({
 		mode.value('sun', _('On at sunrise, off at sunset'));
 		mode.default = 'always';
 		mode.rmempty = false;
-		mode.retain = true;
-		mode.depends('enabled', '1');
 		mode.load = loadKnownChoice;
 
 		const onTime = s.option(TimeValue, 'schedule_on', _('On time'));
@@ -180,7 +178,7 @@ return view.extend({
 		for (const time of [onTime, offTime]) {
 			time.rmempty = false;
 			time.retain = true;
-			time.depends({ enabled: '1', schedule_mode: 'fixed' });
+			time.depends('schedule_mode', 'fixed');
 		}
 
 		for (const [name, title, limit] of [
@@ -190,7 +188,7 @@ return view.extend({
 			const coordinate = s.option(form.Value, name, title);
 			coordinate.rmempty = false;
 			coordinate.retain = true;
-			coordinate.depends({ enabled: '1', schedule_mode: 'sun' });
+			coordinate.depends('schedule_mode', 'sun');
 			coordinate.validate = (section, value) => {
 				const input = value.trim();
 				const degrees = Number(input);
